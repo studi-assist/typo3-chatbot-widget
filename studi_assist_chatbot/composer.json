@@ -1,0 +1,14 @@
+{
+  "name": "studi-assist/typo3-chatbot-widget",
+  "type": "typo3-cms-extension",
+  "description": "TYPO3 extension that adds a floating bottom-right chatbot widget and opens an iframe to a configured chatbot URL.",
+  "license": "MIT",
+  "require": {
+    "typo3/cms-core": "^11.5 || ^12.4 || ^13.4"
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "studi_assist_chatbot"
+    }
+  }
+}
