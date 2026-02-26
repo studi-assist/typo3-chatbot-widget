@@ -4,7 +4,15 @@
   "description": "TYPO3 extension that adds a floating bottom-right chatbot widget and opens an iframe to a configured chatbot URL.",
   "license": "MIT",
   "require": {
-    "typo3/cms-core": "^11.5 || ^12.4 || ^13.4"
+    "php": "^8.1",
+    "typo3/cms-core": "^11.5 || ^12.4 || ^13.4",
+    "typo3/cms-extbase": "^11.5 || ^12.4 || ^13.4",
+    "typo3/cms-fluid": "^11.5 || ^12.4 || ^13.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "StudiAssist\\StudiAssistChatbot\\": "Classes/"
+    }
   },
   "extra": {
     "typo3/cms": {

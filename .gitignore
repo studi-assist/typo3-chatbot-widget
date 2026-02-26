@@ -1,0 +1,5 @@
+/vendor/
+/var/
+/public/
+.DS_Store
+*.cache

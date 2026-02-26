@@ -1,5 +1,0 @@
-plugin.tx_studiassistchatbot_widget {
-  view {
-    templateRootPaths.0 = EXT:studi_assist_chatbot/Resources/Private/Templates/
-  }
-}

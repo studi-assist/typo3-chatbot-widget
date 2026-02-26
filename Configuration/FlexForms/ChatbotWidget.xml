@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<T3DataStructure>
+  <sheets>
+    <sDEF>
+      <ROOT>
+        <sheetTitle>Settings</sheetTitle>
+        <type>array</type>
+        <el>
+          <settings.chatbotUrl>
+            <label>Chatbot URL (must be https://)</label>
+            <config>
+              <type>input</type>
+              <renderType>inputLink</renderType>
+              <size>60</size>
+              <eval>required,trim</eval>
+              <required>1</required>
+              <placeholder>https://placeholder.domain.de/chatbot</placeholder>
+              <fieldControl>
+                <linkPopup>
+                  <options>
+                    <blindLinkOptions>mail,folder,file,telephone,page</blindLinkOptions>
+                  </options>
+                </linkPopup>
+              </fieldControl>
+              <softref>typolink</softref>
+            </config>
+          </settings.chatbotUrl>
+        </el>
+      </ROOT>
+    </sDEF>
+  </sheets>
+</T3DataStructure>

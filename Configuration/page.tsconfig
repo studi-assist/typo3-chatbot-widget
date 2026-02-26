@@ -1,0 +1,13 @@
+mod.wizards.newContentElement.wizardItems.plugins {
+  elements {
+    studiassistchatbot_widget {
+      title = Chatbot Widget
+      description = Opens the chatbot iframe
+      tt_content_defValues {
+        CType = list
+        list_type = studiassistchatbot_widget
+      }
+    }
+  }
+  show := addToList(studiassistchatbot_widget)
+}

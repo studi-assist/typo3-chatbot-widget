@@ -1,9 +1,19 @@
 (function () {
+  'use strict';
+
   const root = document.querySelector('.studi-assist-chatbot-root');
   if (!root) return;
 
   const chatbotUrl = root.getAttribute('data-chatbot-url');
   if (!chatbotUrl) return;
+
+  // Security: only allow http(s) URLs — reject javascript:, data:, etc.
+  try {
+    const parsed = new URL(chatbotUrl, window.location.origin);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
+  } catch (_) {
+    return;
+  }
 
   // Avoid double-init if plugin appears multiple times
   if (window.__studiAssistChatbotWidgetInitialized) return;
@@ -74,6 +84,8 @@
       iframe.style.height = '100%';
       iframe.style.border = 'none';
       iframe.setAttribute('title', 'Chatbot');
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+      iframe.setAttribute('referrerpolicy', 'no-referrer');
 
       // Basic fallback after a bit: show link if iframe likely blocked
       const fallbackTimer = window.setTimeout(() => {
