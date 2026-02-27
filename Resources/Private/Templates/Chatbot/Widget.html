@@ -1,10 +1,11 @@
-<html
-    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
-    data-namespace-typo3-fluid="true"
->
-<div
-    class="studi-assist-chatbot-root"
-    data-chatbot-url="{settings.chatbotUrl}"
-></div>
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+      data-namespace-typo3-fluid="true">
+
+<div class="studi-assist-chatbot-root"
+     data-chatbot-url="{settings.chatbotUrl}"
+     data-button-color="{f:if(condition: settings.buttonColor, then: settings.buttonColor, else: '#779EC4')}"
+     data-text-color="{f:if(condition: settings.textColor, then: settings.textColor, else: '#ffffff')}"
+     data-header-title="{f:if(condition: settings.headerTitle, then: settings.headerTitle, else: 'StudiAssist')}">
+</div>
 
 </html>

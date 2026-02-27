@@ -2,5 +2,11 @@ plugin.tx_studiassistchatbot_widget {
   settings {
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Chatbot URL
     chatbotUrl =
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Button Color
+    buttonColor = #779EC4
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Text and Icon Color
+    textColor = #ffffff
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Header Title
+    headerTitle = StudiAssist
   }
 }

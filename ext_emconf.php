@@ -1,18 +1,17 @@
 <?php
 
 $EM_CONF[$_EXTKEY] = [
-    'title' => 'Studi Assist Chatbot Widget',
-    'description' => 'Adds a floating chatbot launcher that opens an iframe to a configured chatbot URL.',
+    'title' => 'StudiAssist Chatbot Widget',
+    'description' => 'Floating chatbot widget that opens an iframe to a configured chatbot URL.',
     'category' => 'plugin',
-    'author' => 'Studi Assist',
+    'author' => 'StudiAssist',
     'state' => 'stable',
     'clearCacheOnLoad' => true,
-    'version' => '1.0.0',
+    'version' => '1.1.0',
     'constraints' => [
         'depends' => [
             'typo3' => '11.5.0-13.4.99',
-            'extbase' => '',
-            'fluid' => '',
+            'fluid_styled_content' => '',
         ],
         'conflicts' => [],
         'suggests' => [],

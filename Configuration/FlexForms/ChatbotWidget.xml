@@ -10,21 +10,42 @@
             <label>Chatbot URL (must be https://)</label>
             <config>
               <type>input</type>
-              <renderType>inputLink</renderType>
               <size>60</size>
               <eval>required,trim</eval>
               <required>1</required>
-              <placeholder>https://placeholder.domain.de/chatbot</placeholder>
-              <fieldControl>
-                <linkPopup>
-                  <options>
-                    <blindLinkOptions>mail,folder,file,telephone,page</blindLinkOptions>
-                  </options>
-                </linkPopup>
-              </fieldControl>
-              <softref>typolink</softref>
+              <placeholder>https://chat.example.com/chat/de</placeholder>
             </config>
           </settings.chatbotUrl>
+          <settings.buttonColor>
+            <label>Button &amp; Header Color</label>
+            <config>
+              <type>input</type>
+              <renderType>colorpicker</renderType>
+              <size>10</size>
+              <eval>trim</eval>
+              <default>#779EC4</default>
+            </config>
+          </settings.buttonColor>
+          <settings.textColor>
+            <label>Text &amp; Icon Color</label>
+            <config>
+              <type>input</type>
+              <renderType>colorpicker</renderType>
+              <size>10</size>
+              <eval>trim</eval>
+              <default>#ffffff</default>
+            </config>
+          </settings.textColor>
+          <settings.headerTitle>
+            <label>Header Title (shown in chat window)</label>
+            <config>
+              <type>input</type>
+              <size>30</size>
+              <eval>trim</eval>
+              <default>StudiAssist</default>
+              <placeholder>StudiAssist</placeholder>
+            </config>
+          </settings.headerTitle>
         </el>
       </ROOT>
     </sDEF>
