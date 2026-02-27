@@ -16,6 +16,15 @@
               <placeholder>https://chat.example.com/chat/de</placeholder>
             </config>
           </settings.chatbotUrl>
+          <settings.studyProgram>
+            <label>Studiengang (optional – muss Wissensmanager entsprechen)</label>
+            <config>
+              <type>input</type>
+              <size>60</size>
+              <eval>trim</eval>
+              <placeholder>z.B. Wirtschaftsinformatik</placeholder>
+            </config>
+          </settings.studyProgram>
           <settings.buttonColor>
             <label>Button &amp; Header Color</label>
             <config>

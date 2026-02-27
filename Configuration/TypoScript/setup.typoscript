@@ -7,6 +7,7 @@ plugin.tx_studiassistchatbot_widget {
 
   settings {
     chatbotUrl =
+    studyProgram = {$plugin.tx_studiassistchatbot_widget.settings.studyProgram}
     buttonColor = {$plugin.tx_studiassistchatbot_widget.settings.buttonColor}
     textColor = {$plugin.tx_studiassistchatbot_widget.settings.textColor}
     headerTitle = {$plugin.tx_studiassistchatbot_widget.settings.headerTitle}

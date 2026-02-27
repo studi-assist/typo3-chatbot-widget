@@ -7,9 +7,10 @@
   const chatbotUrl = root.getAttribute('data-chatbot-url');
   if (!chatbotUrl) return;
 
-  const buttonColor = root.getAttribute('data-button-color') || '#779EC4';
-  const textColor   = root.getAttribute('data-text-color')   || '#ffffff';
-  const headerTitle = root.getAttribute('data-header-title') || 'StudiAssist';
+  const buttonColor  = root.getAttribute('data-button-color')  || '#779EC4';
+  const textColor    = root.getAttribute('data-text-color')    || '#ffffff';
+  const headerTitle  = root.getAttribute('data-header-title')  || 'StudiAssist';
+  const studyProgram = root.getAttribute('data-study-program') || '';
 
   // Security: only allow http(s) URLs
   try {
@@ -17,6 +18,16 @@
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
   } catch (_) {
     return;
+  }
+
+  // Build final URL – append ?sp= when a study program is configured
+  let finalUrl = chatbotUrl;
+  if (studyProgram.trim()) {
+    try {
+      const u = new URL(chatbotUrl, window.location.origin);
+      u.searchParams.set('sp', studyProgram.trim().toLowerCase());
+      finalUrl = u.href;
+    } catch (_) {}
   }
 
   // Validate color format (hex only)
@@ -408,7 +419,7 @@
   // "Open in new tab" icon button
   var newTabBtn = document.createElement('a');
   newTabBtn.className = 'sacw-header-btn';
-  newTabBtn.href = chatbotUrl;
+  newTabBtn.href = finalUrl;
   newTabBtn.target = '_blank';
   newTabBtn.rel = 'noopener noreferrer';
   newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
@@ -482,7 +493,7 @@
           loading.setAttribute('data-hidden', 'true');
         }, 600);
       });
-      iframe.src = chatbotUrl;
+      iframe.src = finalUrl;
     }
 
     chatbox.setAttribute('data-open', 'true');
