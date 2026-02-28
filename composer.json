@@ -18,5 +18,8 @@
     "typo3/cms": {
       "extension-key": "studi_assist_chatbot"
     }
+  },
+  "replace": {
+    "typo3-ter/studi_assist_chatbot": "self.version"
   }
 }
