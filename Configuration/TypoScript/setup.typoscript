@@ -6,10 +6,29 @@ plugin.tx_studiassistchatbot_widget {
   }
 
   settings {
-    chatbotUrl =
+    chatbotUrl = {$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}
     studyProgram = {$plugin.tx_studiassistchatbot_widget.settings.studyProgram}
     buttonColor = {$plugin.tx_studiassistchatbot_widget.settings.buttonColor}
     textColor = {$plugin.tx_studiassistchatbot_widget.settings.textColor}
     headerTitle = {$plugin.tx_studiassistchatbot_widget.settings.headerTitle}
   }
 }
+
+# Global chatbot widget (enabled via Constant Editor: enableGlobal = 1)
+[{$plugin.tx_studiassistchatbot_widget.settings.enableGlobal} == 1]
+  page.includeJSFooter.studiAssistChatbot = EXT:studi_assist_chatbot/Resources/Public/JavaScript/widget-loader.js
+
+  page.footerData.1638472 = COA
+  page.footerData.1638472 {
+    10 = TEXT
+    10.value (
+      <div class="studi-assist-chatbot-root"
+           data-chatbot-url="{$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}"
+           data-study-program="{$plugin.tx_studiassistchatbot_widget.settings.studyProgram}"
+           data-button-color="{$plugin.tx_studiassistchatbot_widget.settings.buttonColor}"
+           data-text-color="{$plugin.tx_studiassistchatbot_widget.settings.textColor}"
+           data-header-title="{$plugin.tx_studiassistchatbot_widget.settings.headerTitle}">
+      </div>
+    )
+  }
+[end]

@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  const root = document.querySelector('.studi-assist-chatbot-root');
-  if (!root) return;
+  function init() {
+    const root = document.querySelector('.studi-assist-chatbot-root');
+    if (!root) return;
 
   const chatbotUrl = root.getAttribute('data-chatbot-url');
   if (!chatbotUrl) return;
@@ -533,4 +534,11 @@
 
   // Expose API for external use
   window.studiAssistChatbot = { open: openChat, close: closeChat, toggle: toggleChat };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

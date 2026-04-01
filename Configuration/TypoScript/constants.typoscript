@@ -1,5 +1,7 @@
 plugin.tx_studiassistchatbot_widget {
   settings {
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Enable Global: Show chatbot widget on all pages without adding it as a plugin
+    enableGlobal = 0
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Chatbot URL
     chatbotUrl =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Study Program (optional, appended as ?sp=)
