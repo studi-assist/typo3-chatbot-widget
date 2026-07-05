@@ -26,7 +26,7 @@
             </config>
           </settings.studyProgram>
           <settings.buttonColor>
-            <label>Button &amp; Header Color</label>
+            <label>Button Color (gradient start &amp; header)</label>
             <config>
               <type>input</type>
               <renderType>colorpicker</renderType>
@@ -35,6 +35,15 @@
               <default>#779EC4</default>
             </config>
           </settings.buttonColor>
+          <settings.buttonColorEnd>
+            <label>Button Gradient End Color (optional – empty = derived from Button Color)</label>
+            <config>
+              <type>input</type>
+              <renderType>colorpicker</renderType>
+              <size>10</size>
+              <eval>trim</eval>
+            </config>
+          </settings.buttonColorEnd>
           <settings.textColor>
             <label>Text &amp; Icon Color</label>
             <config>
@@ -55,6 +64,75 @@
               <placeholder>StudiAssist</placeholder>
             </config>
           </settings.headerTitle>
+          <settings.iconStyle>
+            <label>Launcher Icon</label>
+            <config>
+              <type>select</type>
+              <renderType>selectSingle</renderType>
+              <items>
+                <numIndex index="0">
+                  <numIndex index="0">Chat bubble</numIndex>
+                  <numIndex index="1">chat</numIndex>
+                </numIndex>
+                <numIndex index="1">
+                  <numIndex index="0">Sparkle (AI)</numIndex>
+                  <numIndex index="1">sparkle</numIndex>
+                </numIndex>
+                <numIndex index="2">
+                  <numIndex index="0">Graduation cap</numIndex>
+                  <numIndex index="1">cap</numIndex>
+                </numIndex>
+                <numIndex index="3">
+                  <numIndex index="0">Robot</numIndex>
+                  <numIndex index="1">robot</numIndex>
+                </numIndex>
+              </items>
+              <default>chat</default>
+            </config>
+          </settings.iconStyle>
+          <settings.showStatusDot>
+            <label>Show Online Status Dot</label>
+            <config>
+              <type>check</type>
+              <default>1</default>
+            </config>
+          </settings.showStatusDot>
+          <settings.statusDotColor>
+            <label>Status Dot Color</label>
+            <config>
+              <type>input</type>
+              <renderType>colorpicker</renderType>
+              <size>10</size>
+              <eval>trim</eval>
+              <default>#34c759</default>
+            </config>
+          </settings.statusDotColor>
+          <settings.windowBackgroundColor>
+            <label>Chat Window Background Color</label>
+            <config>
+              <type>input</type>
+              <renderType>colorpicker</renderType>
+              <size>10</size>
+              <eval>trim</eval>
+              <default>#ffffff</default>
+            </config>
+          </settings.windowBackgroundColor>
+          <settings.teaserText>
+            <label>Teaser Text (optional speech bubble next to the button – empty = off)</label>
+            <config>
+              <type>input</type>
+              <size>60</size>
+              <eval>trim</eval>
+              <placeholder>z.B. Fragen zum Studium? Ich helfe gern!</placeholder>
+            </config>
+          </settings.teaserText>
+          <settings.showHeader>
+            <label>Show Header Bar (off = floating close button instead)</label>
+            <config>
+              <type>check</type>
+              <default>1</default>
+            </config>
+          </settings.showHeader>
         </el>
       </ROOT>
     </sDEF>

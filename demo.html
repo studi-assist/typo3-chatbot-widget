@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StudiAssist Chat — TYPO3 widget live preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #1b2430;
+        background: linear-gradient(160deg, #eef3f8 0%, #e3ebf3 100%);
+        min-height: 100vh;
+      }
+      .page { max-width: 760px; margin: 0 auto; padding: 56px 24px 160px; }
+      .page h1 { font-size: 28px; margin: 0 0 8px; }
+      .page p { color: #4a5765; line-height: 1.6; }
+      .panel {
+        position: fixed; top: 18px; left: 18px; width: 320px;
+        max-height: calc(100vh - 36px); overflow: auto;
+        background: #fff; border: 1px solid rgba(15, 31, 48, 0.1); border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(15, 31, 48, 0.16); padding: 16px 18px;
+        z-index: 2147483647; font-size: 13px;
+      }
+      .panel h2 { font-size: 14px; margin: 0 0 4px; }
+      .panel h3 { font-size: 12px; margin: 14px 0 4px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.05em; }
+      .panel .hint { color: #6b7785; font-size: 12px; margin: 0 0 12px; }
+      .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; }
+      .row label { color: #34404d; }
+      .row input[type="color"] { width: 44px; height: 28px; padding: 0; border: 1px solid #ccd4dd; border-radius: 6px; background: #fff; }
+      .row input[type="color"]:disabled { opacity: 0.35; }
+      .row input[type="text"], .row select { width: 160px; padding: 5px 7px; border: 1px solid #ccd4dd; border-radius: 7px; font-size: 12px; }
+      .row .color-group { display: flex; align-items: center; gap: 6px; }
+      .row .color-group label { font-size: 11px; color: #6b7785; }
+      .presets { display: flex; gap: 8px; margin: 4px 0 12px; }
+      .presets button { flex: 1; padding: 8px 4px; border: 1px solid #ccd4dd; border-radius: 9px; background: #f5f8fb; cursor: pointer; font-weight: 600; font-size: 11px; }
+      .presets button:hover { background: #eaf1f8; }
+      .snippet { position: relative; margin-top: 6px; }
+      .snippet textarea {
+        width: 100%; height: 190px; resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10.5px; line-height: 1.45;
+        border: 1px solid #ccd4dd; border-radius: 9px; padding: 8px;
+        background: #f8fafc; color: #34404d; white-space: pre;
+      }
+      .snippet button {
+        position: absolute; top: 8px; right: 8px; padding: 4px 10px;
+        border: 1px solid #ccd4dd; border-radius: 7px; background: #fff;
+        cursor: pointer; font-size: 11px; font-weight: 600;
+      }
+      .snippet button:hover { background: #eaf1f8; }
+    </style>
+  </head>
+  <body>
+    <aside class="panel">
+      <h2>StudiAssist Chat — TYPO3 preview</h2>
+      <p class="hint">
+        Loads the real <code>Resources/Public/JavaScript/widget-loader.js</code>
+        — exactly what the extension ships, no TYPO3 instance needed.
+        The launcher floats bottom-right →
+      </p>
+
+      <div class="presets">
+        <button type="button" data-preset="hhn">HS Heilbronn</button>
+        <button type="button" data-preset="sa">StudiAssist</button>
+        <button type="button" data-preset="defaults">Ext. defaults</button>
+      </div>
+
+      <h3>Content</h3>
+      <div class="row"><label>Chat URL</label><input type="text" id="chatbotUrl" /></div>
+      <div class="row"><label>Study program</label><input type="text" id="studyProgram" placeholder="(empty = off)" /></div>
+      <div class="row"><label>Header title</label><input type="text" id="headerTitle" /></div>
+      <div class="row"><label>Teaser</label><input type="text" id="teaserText" placeholder="(empty = off)" /></div>
+
+      <h3>Colors</h3>
+      <div class="row"><label>Button top</label><input type="color" id="buttonColor" /></div>
+      <div class="row">
+        <label>Button bottom</label>
+        <span class="color-group">
+          <label><input type="checkbox" id="buttonColorEndAuto" /> auto</label>
+          <input type="color" id="buttonColorEnd" />
+        </span>
+      </div>
+      <div class="row"><label>Text / icon</label><input type="color" id="textColor" /></div>
+      <div class="row"><label>Status dot</label><input type="color" id="statusDotColor" /></div>
+      <div class="row"><label>Window bg</label><input type="color" id="windowBackgroundColor" /></div>
+
+      <h3>Layout</h3>
+      <div class="row">
+        <label>Icon</label>
+        <select id="iconStyle">
+          <option value="chat">Chat bubble</option>
+          <option value="sparkle">Sparkle (AI)</option>
+          <option value="cap">Graduation cap</option>
+          <option value="robot">Robot</option>
+        </select>
+      </div>
+      <div class="row"><label>Online dot</label><input type="checkbox" id="showStatusDot" checked /></div>
+      <div class="row"><label>Header bar</label><input type="checkbox" id="showHeader" checked /></div>
+
+      <h3>TypoScript constants</h3>
+      <div class="snippet">
+        <textarea id="typoscript" readonly spellcheck="false"></textarea>
+        <button type="button" id="copyBtn">Copy</button>
+      </div>
+    </aside>
+
+    <main class="page">
+      <h1>Example university page</h1>
+      <p>
+        Stand-in for a university page rendered by TYPO3. The launcher in the
+        bottom-right corner is created by the shipped widget loader from a
+        <code>.studi-assist-chatbot-root</code> element — the same element the
+        Fluid template and the global TypoScript block emit. Every control on
+        the left maps 1:1 to a plugin/constant setting; the generated
+        TypoScript constants for the current state are shown in the panel,
+        ready to paste into the Constant Editor.
+      </p>
+      <p>
+        Note: changing a setting rebuilds the widget (the real loader reads its
+        configuration once at init), so an open chat window reloads its iframe.
+      </p>
+    </main>
+
+    <!-- The widget reads its config from this element, exactly like in TYPO3 -->
+    <div class="studi-assist-chatbot-root"></div>
+
+    <script>
+      (function () {
+        var PRESETS = {
+          hhn: {
+            chatbotUrl: "https://hs-heilbronn.studi-assist.de/chat",
+            studyProgram: "",
+            headerTitle: "StudiAssist",
+            teaserText: "",
+            buttonColor: "#009fd5",
+            buttonColorEnd: "#354e91",
+            buttonColorEndAuto: false,
+            textColor: "#ffffff",
+            statusDotColor: "#34c759",
+            windowBackgroundColor: "#ffffff",
+            iconStyle: "chat",
+            showStatusDot: true,
+            showHeader: true,
+          },
+          sa: {
+            chatbotUrl: "https://website.studi-assist.de/chat/public/de",
+            studyProgram: "",
+            headerTitle: "StudiAssist",
+            teaserText: "",
+            buttonColor: "#8eb9dc",
+            buttonColorEnd: "#346895",
+            buttonColorEndAuto: false,
+            textColor: "#ffffff",
+            statusDotColor: "#34c759",
+            windowBackgroundColor: "#ffffff",
+            iconStyle: "chat",
+            showStatusDot: true,
+            showHeader: true,
+          },
+          defaults: {
+            chatbotUrl: "https://website.studi-assist.de/chat/public/de",
+            studyProgram: "",
+            headerTitle: "StudiAssist",
+            teaserText: "",
+            buttonColor: "#779EC4",
+            buttonColorEnd: "#3b6288",
+            buttonColorEndAuto: true,
+            textColor: "#ffffff",
+            statusDotColor: "#34c759",
+            windowBackgroundColor: "#ffffff",
+            iconStyle: "chat",
+            showStatusDot: true,
+            showHeader: true,
+          },
+        };
+
+        var el = function (id) { return document.getElementById(id); };
+        var root = document.querySelector(".studi-assist-chatbot-root");
+        var ids = [
+          "chatbotUrl", "studyProgram", "headerTitle", "teaserText",
+          "buttonColor", "buttonColorEnd", "buttonColorEndAuto", "textColor",
+          "statusDotColor", "windowBackgroundColor",
+          "iconStyle", "showStatusDot", "showHeader",
+        ];
+
+        function readConfig() {
+          return {
+            chatbotUrl: el("chatbotUrl").value,
+            studyProgram: el("studyProgram").value,
+            headerTitle: el("headerTitle").value,
+            teaserText: el("teaserText").value,
+            buttonColor: el("buttonColor").value,
+            buttonColorEnd: el("buttonColorEndAuto").checked ? "" : el("buttonColorEnd").value,
+            textColor: el("textColor").value,
+            statusDotColor: el("statusDotColor").value,
+            windowBackgroundColor: el("windowBackgroundColor").value,
+            iconStyle: el("iconStyle").value,
+            showStatusDot: el("showStatusDot").checked,
+            showHeader: el("showHeader").checked,
+          };
+        }
+
+        function writeConfig(c) {
+          el("chatbotUrl").value = c.chatbotUrl;
+          el("studyProgram").value = c.studyProgram;
+          el("headerTitle").value = c.headerTitle;
+          el("teaserText").value = c.teaserText;
+          el("buttonColor").value = c.buttonColor;
+          el("buttonColorEnd").value = c.buttonColorEnd || "#3b6288";
+          el("buttonColorEndAuto").checked = c.buttonColorEndAuto;
+          el("textColor").value = c.textColor;
+          el("statusDotColor").value = c.statusDotColor;
+          el("windowBackgroundColor").value = c.windowBackgroundColor;
+          el("iconStyle").value = c.iconStyle;
+          el("showStatusDot").checked = c.showStatusDot;
+          el("showHeader").checked = c.showHeader;
+        }
+
+        // Same auto-derivation as the loader: gradient end = darken(start, 60)
+        function autoEnd(hex) {
+          function ch(i) {
+            return Math.max(0, parseInt(hex.slice(i, i + 2), 16) - 60)
+              .toString(16).padStart(2, "0");
+          }
+          return "#" + ch(1) + ch(3) + ch(5);
+        }
+
+        function typoScriptFor(c) {
+          return [
+            "plugin.tx_studiassistchatbot_widget.settings {",
+            "  enableGlobal = 1",
+            "  chatbotUrl = " + c.chatbotUrl,
+            "  studyProgram = " + c.studyProgram,
+            "  buttonColor = " + c.buttonColor,
+            "  buttonColorEnd = " + c.buttonColorEnd,
+            "  textColor = " + c.textColor,
+            "  headerTitle = " + c.headerTitle,
+            "  iconStyle = " + c.iconStyle,
+            "  showStatusDot = " + (c.showStatusDot ? "1" : "0"),
+            "  statusDotColor = " + c.statusDotColor,
+            "  windowBackgroundColor = " + c.windowBackgroundColor,
+            "  teaserText = " + c.teaserText,
+            "  showHeader = " + (c.showHeader ? "1" : "0"),
+            "}",
+          ].join("\n");
+        }
+
+        var scriptCounter = 0;
+        function rebuild() {
+          var c = readConfig();
+
+          // Keep the "auto" gradient end preview in sync with the start color
+          if (el("buttonColorEndAuto").checked) {
+            el("buttonColorEnd").value = autoEnd(c.buttonColor);
+          }
+          el("buttonColorEnd").disabled = el("buttonColorEndAuto").checked;
+          el("typoscript").value = typoScriptFor(c);
+
+          // Tear down the previous widget instance …
+          var wasOpen = document.querySelector('.sacw-chatbox[data-open="true"]') !== null;
+          document.querySelectorAll(".sacw-root").forEach(function (n) { n.remove(); });
+          window.__studiAssistChatbotWidgetInitialized = false;
+          var oldScript = document.getElementById("sacw-demo-script");
+          if (oldScript) oldScript.remove();
+
+          // … write the config onto the root element, exactly like Fluid/TypoScript do …
+          root.setAttribute("data-chatbot-url", c.chatbotUrl);
+          root.setAttribute("data-study-program", c.studyProgram);
+          root.setAttribute("data-button-color", c.buttonColor);
+          root.setAttribute("data-button-color-end", c.buttonColorEnd);
+          root.setAttribute("data-text-color", c.textColor);
+          root.setAttribute("data-header-title", c.headerTitle);
+          root.setAttribute("data-icon-style", c.iconStyle);
+          root.setAttribute("data-status-dot-color", c.statusDotColor);
+          root.setAttribute("data-show-status-dot", c.showStatusDot ? "1" : "0");
+          root.setAttribute("data-window-background-color", c.windowBackgroundColor);
+          root.setAttribute("data-teaser-text", c.teaserText);
+          root.setAttribute("data-show-header", c.showHeader ? "1" : "0");
+
+          // … and re-run the real loader
+          var s = document.createElement("script");
+          s.id = "sacw-demo-script";
+          s.src = "Resources/Public/JavaScript/widget-loader.js?v=" + (++scriptCounter);
+          s.onload = function () {
+            if (wasOpen && window.studiAssistChatbot) window.studiAssistChatbot.open();
+          };
+          document.body.appendChild(s);
+        }
+
+        var debounceTimer = null;
+        function scheduleRebuild() {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(rebuild, 180);
+        }
+
+        ids.forEach(function (id) {
+          el(id).addEventListener("input", scheduleRebuild);
+          el(id).addEventListener("change", scheduleRebuild);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll(".presets button"), function (b) {
+          b.addEventListener("click", function () {
+            writeConfig(PRESETS[b.dataset.preset]);
+            rebuild();
+          });
+        });
+        el("copyBtn").addEventListener("click", function () {
+          el("typoscript").select();
+          try { navigator.clipboard.writeText(el("typoscript").value); } catch (_) {}
+          document.execCommand && document.execCommand("copy");
+          el("copyBtn").textContent = "Copied!";
+          setTimeout(function () { el("copyBtn").textContent = "Copy"; }, 1200);
+        });
+
+        writeConfig(PRESETS.hhn);
+        rebuild();
+      })();
+    </script>
+  </body>
+</html>

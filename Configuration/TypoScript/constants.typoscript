@@ -6,11 +6,25 @@ plugin.tx_studiassistchatbot_widget {
     chatbotUrl =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Study Program (optional, appended as ?sp=)
     studyProgram =
-    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Button Color
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Button Color (gradient start and header)
     buttonColor = #779EC4
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Button Gradient End Color (optional, empty = derived from Button Color)
+    buttonColorEnd =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Text and Icon Color
     textColor = #ffffff
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Header Title
     headerTitle = StudiAssist
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=options[Chat bubble=chat,Sparkle (AI)=sparkle,Graduation cap=cap,Robot=robot]; label=Launcher Icon
+    iconStyle = chat
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Online Status Dot
+    showStatusDot = 1
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Status Dot Color
+    statusDotColor = #34c759
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=color; label=Chat Window Background Color
+    windowBackgroundColor = #ffffff
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Teaser Text (optional speech bubble next to the button, empty = off)
+    teaserText =
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Header Bar (off = floating close button instead)
+    showHeader = 1
   }
 }

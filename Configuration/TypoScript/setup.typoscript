@@ -9,8 +9,15 @@ plugin.tx_studiassistchatbot_widget {
     chatbotUrl = {$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}
     studyProgram = {$plugin.tx_studiassistchatbot_widget.settings.studyProgram}
     buttonColor = {$plugin.tx_studiassistchatbot_widget.settings.buttonColor}
+    buttonColorEnd = {$plugin.tx_studiassistchatbot_widget.settings.buttonColorEnd}
     textColor = {$plugin.tx_studiassistchatbot_widget.settings.textColor}
     headerTitle = {$plugin.tx_studiassistchatbot_widget.settings.headerTitle}
+    iconStyle = {$plugin.tx_studiassistchatbot_widget.settings.iconStyle}
+    showStatusDot = {$plugin.tx_studiassistchatbot_widget.settings.showStatusDot}
+    statusDotColor = {$plugin.tx_studiassistchatbot_widget.settings.statusDotColor}
+    windowBackgroundColor = {$plugin.tx_studiassistchatbot_widget.settings.windowBackgroundColor}
+    teaserText = {$plugin.tx_studiassistchatbot_widget.settings.teaserText}
+    showHeader = {$plugin.tx_studiassistchatbot_widget.settings.showHeader}
   }
 }
 
@@ -26,8 +33,15 @@ plugin.tx_studiassistchatbot_widget {
            data-chatbot-url="{$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}"
            data-study-program="{$plugin.tx_studiassistchatbot_widget.settings.studyProgram}"
            data-button-color="{$plugin.tx_studiassistchatbot_widget.settings.buttonColor}"
+           data-button-color-end="{$plugin.tx_studiassistchatbot_widget.settings.buttonColorEnd}"
            data-text-color="{$plugin.tx_studiassistchatbot_widget.settings.textColor}"
-           data-header-title="{$plugin.tx_studiassistchatbot_widget.settings.headerTitle}">
+           data-header-title="{$plugin.tx_studiassistchatbot_widget.settings.headerTitle}"
+           data-icon-style="{$plugin.tx_studiassistchatbot_widget.settings.iconStyle}"
+           data-status-dot-color="{$plugin.tx_studiassistchatbot_widget.settings.statusDotColor}"
+           data-show-status-dot="{$plugin.tx_studiassistchatbot_widget.settings.showStatusDot}"
+           data-window-background-color="{$plugin.tx_studiassistchatbot_widget.settings.windowBackgroundColor}"
+           data-teaser-text="{$plugin.tx_studiassistchatbot_widget.settings.teaserText}"
+           data-show-header="{$plugin.tx_studiassistchatbot_widget.settings.showHeader}">
       </div>
     )
   }

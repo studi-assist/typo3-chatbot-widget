@@ -8,10 +8,58 @@
   const chatbotUrl = root.getAttribute('data-chatbot-url');
   if (!chatbotUrl) return;
 
-  const buttonColor  = root.getAttribute('data-button-color')  || '#779EC4';
-  const textColor    = root.getAttribute('data-text-color')    || '#ffffff';
-  const headerTitle  = root.getAttribute('data-header-title')  || 'StudiAssist';
-  const studyProgram = root.getAttribute('data-study-program') || '';
+  /* ── Helpers ── */
+  function normalizeHex(hex) {
+    if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+      return '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+    }
+    return hex;
+  }
+
+  // Returns a valid 6-digit hex color or the fallback (never blocks rendering)
+  function sanitizeHex(value, fallback) {
+    var v = (value || '').trim();
+    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v) ? normalizeHex(v) : fallback;
+  }
+
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+  }
+
+  function darkenHex(hex, amount) {
+    var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amount);
+    var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
+    var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
+    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+  }
+
+  function mixHex(a, b, t) {
+    function ch(i) {
+      var x = parseInt(a.slice(i, i + 2), 16);
+      var y = parseInt(b.slice(i, i + 2), 16);
+      return Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
+    }
+    return '#' + ch(1) + ch(3) + ch(5);
+  }
+
+  /* ── Read configuration ── */
+  const buttonColor    = sanitizeHex(root.getAttribute('data-button-color'), '#779EC4');
+  // Empty gradient end = derive one from the main color, so existing
+  // single-color configs automatically get a matching gradient
+  const buttonColorEnd = sanitizeHex(root.getAttribute('data-button-color-end'), darkenHex(buttonColor, 60));
+  const textColor      = sanitizeHex(root.getAttribute('data-text-color'), '#ffffff');
+  const statusDotColor = sanitizeHex(root.getAttribute('data-status-dot-color'), '#34c759');
+  const windowBg       = sanitizeHex(root.getAttribute('data-window-background-color'), '#ffffff');
+  const headerTitle    = root.getAttribute('data-header-title') || 'StudiAssist';
+  const studyProgram   = root.getAttribute('data-study-program') || '';
+  const teaserText     = (root.getAttribute('data-teaser-text') || '').trim();
+  const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
+  const showHeader     = root.getAttribute('data-show-header') !== '0';
+
+  var iconStyle = root.getAttribute('data-icon-style') || 'chat';
 
   // Security: only allow http(s) URLs
   try {
@@ -31,29 +79,47 @@
     } catch (_) {}
   }
 
-  // Validate color format (hex only)
-  if (!/^#([0-9A-Fa-f]{3}){1,2}$/.test(buttonColor)) return;
-
   // Avoid double-init
   if (window.__studiAssistChatbotWidgetInitialized) return;
   window.__studiAssistChatbotWidgetInitialized = true;
 
-  /* ── Helpers ── */
-  function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
-  }
+  /* ── Launcher icons ── */
+  var ICONS = {
+    chat:
+      '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M8.5 20.75c0-6.7 6.55-12.13 14.63-12.13s14.62 5.43 14.62 12.13-6.55 12.12-14.62 12.12c-1.42 0-2.79-.17-4.09-.5l-6.63 3.24c-.77.38-1.61-.37-1.3-1.17l1.88-5.02c-2.75-2.18-4.49-5.28-4.49-8.67Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>' +
+      '<path d="M17.25 20.9h.04M23.25 20.9h.04M29.25 20.9h.04" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/></svg>',
+    sparkle:
+      '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M24 5.5c1.1 8.2 5.3 12.4 13.5 13.5C29.3 20.1 25.1 24.3 24 32.5 22.9 24.3 18.7 20.1 10.5 19 18.7 17.9 22.9 13.7 24 5.5Z" fill="currentColor"/>' +
+      '<path d="M37.5 27c.5 3.4 2.1 5 5.5 5.5-3.4.5-5 2.1-5.5 5.5-.5-3.4-2.1-5-5.5-5.5 3.4-.5 5-2.1 5.5-5.5Z" fill="currentColor"/></svg>',
+    cap:
+      '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M24 9.5 5.5 18 24 26.5 42.5 18 24 9.5Z" fill="currentColor"/>' +
+      '<path d="M13.5 22.5V31c0 2.9 4.7 5.2 10.5 5.2S34.5 33.9 34.5 31v-8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M42.5 18v9.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
+      '<circle cx="42.5" cy="29.5" r="2.1" fill="currentColor"/></svg>',
+    robot:
+      '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="10.5" y="16.5" width="27" height="20" rx="6.5" stroke="currentColor" stroke-width="3.2"/>' +
+      '<path d="M24 11.5v5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
+      '<circle cx="24" cy="9" r="2.4" fill="currentColor"/>' +
+      '<circle cx="19" cy="26" r="2.6" fill="currentColor"/><circle cx="29" cy="26" r="2.6" fill="currentColor"/>' +
+      '<path d="M6.5 24.5v4M41.5 24.5v4" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>',
+  };
+  if (!ICONS[iconStyle]) iconStyle = 'chat';
 
-  function darkenHex(hex, amount) {
-    var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amount);
-    var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
-    var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
-    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
-  }
+  var LAUNCHER_CLOSE_ICON =
+    '<svg class="sacw-icon-close" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M14.5 14.5 33.5 33.5M33.5 14.5 14.5 33.5" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
 
-  /* ── Inject styles ── */
+  var CLOSE_X_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+    ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<line x1="18" y1="6" x2="6" y2="18"/>' +
+    '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  /* ── Inject styles (static — configuration flows in via CSS variables) ── */
   var style = document.createElement('style');
   style.textContent = `
     /* ── Backdrop (click-away to close) ── */
@@ -68,52 +134,76 @@
     /* ── Launcher button ── */
     .sacw-launcher {
       position: fixed;
-      bottom: 32px;
-      right: 32px;
-      width: 60px;
-      height: 60px;
+      bottom: 30px;
+      right: 30px;
+      width: 78px;
+      height: 78px;
       border-radius: 50%;
-      border: none;
+      border: 3px solid rgba(255, 255, 255, 0.86);
       cursor: pointer;
       z-index: 10000;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0;
-      background: ${buttonColor};
-      color: ${textColor};
+      background: linear-gradient(145deg, var(--sacw-btn-start) 0%, var(--sacw-btn-mid) 58%, var(--sacw-btn-end) 100%);
+      color: var(--sacw-text);
       box-shadow:
-        0 4px 12px ${hexToRgba(buttonColor, 0.4)},
-        0 1px 3px rgba(0, 0, 0, 0.12);
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  box-shadow 0.3s ease,
-                  background 0.2s ease;
+        0 20px 42px rgba(31, 60, 91, 0.26),
+        0 6px 14px rgba(31, 60, 91, 0.16);
+      transition: transform 180ms ease, box-shadow 180ms ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .sacw-launcher:hover {
-      transform: scale(1.1);
+      transform: translateY(-3px) scale(1.02);
       box-shadow:
-        0 6px 20px ${hexToRgba(buttonColor, 0.5)},
-        0 2px 6px rgba(0, 0, 0, 0.15);
-      background: ${darkenHex(buttonColor, 15)};
+        0 24px 50px rgba(31, 60, 91, 0.3),
+        0 8px 18px rgba(31, 60, 91, 0.18);
     }
     .sacw-launcher:focus-visible {
-      outline: 3px solid ${hexToRgba(buttonColor, 0.5)};
-      outline-offset: 4px;
+      outline: none;
+      box-shadow:
+        0 0 0 3px var(--sacw-btn-start-45),
+        0 12px 28px rgba(31, 60, 91, 0.22);
     }
     .sacw-launcher:active {
-      transform: scale(0.95);
+      transform: translateY(0) scale(0.97);
       transition-duration: 0.1s;
+    }
+
+    /* Status dot (online indicator) */
+    .sacw-launcher::after {
+      content: "";
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--sacw-status);
+      border: 2.5px solid #fff;
+      box-shadow: 0 0 0 0 var(--sacw-status-45);
+      animation: sacw-pulse 2.4s ease-out infinite;
+    }
+    @keyframes sacw-pulse {
+      0%   { box-shadow: 0 0 0 0 var(--sacw-status-45); }
+      70%  { box-shadow: 0 0 0 8px var(--sacw-status-0); }
+      100% { box-shadow: 0 0 0 0 var(--sacw-status-0); }
+    }
+    .sacw-launcher[aria-expanded="true"]::after,
+    .sacw-launcher[data-status="off"]::after {
+      display: none;
     }
 
     /* Icon transitions */
     .sacw-launcher svg {
-      width: 28px;
-      height: 28px;
+      width: 42px;
+      height: 42px;
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
                   opacity 0.2s ease;
       position: absolute;
     }
-    .sacw-launcher .sacw-icon-chat {
+    .sacw-launcher .sacw-icon-main {
       opacity: 1;
       transform: scale(1) rotate(0deg);
     }
@@ -121,7 +211,7 @@
       opacity: 0;
       transform: scale(0.5) rotate(-90deg);
     }
-    .sacw-launcher[aria-expanded="true"] .sacw-icon-chat {
+    .sacw-launcher[aria-expanded="true"] .sacw-icon-main {
       opacity: 0;
       transform: scale(0.5) rotate(90deg);
     }
@@ -130,37 +220,6 @@
       transform: scale(1) rotate(0deg);
     }
 
-    /* Hide badge when chat is open */
-    .sacw-launcher[aria-expanded="true"] .sacw-launcher-badge {
-      display: none;
-    }
-
-    /* Online badge */
-    .sacw-launcher-badge {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 13px;
-      height: 13px;
-      border-radius: 50%;
-      background: #4ade80;
-      border: 2px solid #fff;
-      z-index: 1;
-    }
-    /* Ripple behind the badge */
-    .sacw-launcher-badge::after {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 50%;
-      background: #4ade80;
-      opacity: 0.4;
-      animation: sacw-ripple 2s ease-out infinite;
-    }
-    @keyframes sacw-ripple {
-      0%   { transform: scale(1);   opacity: 0.4; }
-      100% { transform: scale(2.4); opacity: 0; }
-    }
     /* Entrance bounce */
     @keyframes sacw-bounce-in {
       0%   { opacity: 0; transform: scale(0.4) translateY(20px); }
@@ -172,31 +231,80 @@
       animation: sacw-bounce-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
+    /* ── Teaser bubble ── */
+    .sacw-teaser {
+      position: fixed;
+      bottom: 40px;
+      right: 122px;
+      width: max-content;
+      max-width: min(280px, calc(100vw - 150px));
+      color: #102844;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      z-index: 9999;
+      display: none;
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      transition: opacity 220ms ease, transform 220ms ease;
+      cursor: pointer;
+    }
+    .sacw-teaser[data-visible="true"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .sacw-teaser::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      bottom: 18px;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      transform: rotate(45deg);
+      border-radius: 2px;
+      box-shadow: 2px -2px 4px rgba(15, 31, 48, 0.04);
+    }
+    .sacw-teaser-content {
+      position: relative;
+      width: max-content;
+      max-width: 100%;
+      background: #fff;
+      border: 1px solid rgba(93, 141, 187, 0.16);
+      border-radius: 18px;
+      box-shadow:
+        0 14px 30px rgba(15, 31, 48, 0.16),
+        0 4px 10px rgba(15, 31, 48, 0.08);
+      line-height: 1.25;
+      padding: 12px 15px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
     /* ── Chat window ── */
     .sacw-chatbox {
       position: fixed;
-      bottom: 108px;
+      bottom: 122px;
       right: 32px;
-      width: 500px;
-      height: 720px;
-      max-height: calc(100dvh - 120px);
+      width: min(560px, calc(100vw - 64px));
+      height: min(760px, calc(100vh - 150px));
+      height: min(760px, calc(100dvh - 150px));
       z-index: 9999;
       display: flex;
       flex-direction: column;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #fff;
+      border-radius: 24px;
+      overflow: visible;
+      background: var(--sacw-window-bg);
+      border: 1px solid rgba(15, 31, 48, 0.08);
       box-shadow:
-        0 24px 48px rgba(0, 0, 0, 0.16),
-        0 8px 16px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(0, 0, 0, 0.04);
+        0 24px 60px rgba(15, 31, 48, 0.22),
+        0 8px 20px rgba(15, 31, 48, 0.12);
+      transform-origin: bottom right;
 
       /* Hidden by default */
       opacity: 0;
-      transform: translateY(20px) scale(0.96);
+      transform: translateY(10px) scale(0.97);
       pointer-events: none;
-      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                  transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+                  transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .sacw-chatbox[data-open="true"] {
       opacity: 1;
@@ -208,27 +316,29 @@
     .sacw-header {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 0 6px 0 14px;
-      height: 44px;
-      min-height: 44px;
-      background: ${buttonColor};
-      color: ${textColor};
+      gap: 8px;
+      padding: 0 8px 0 16px;
+      height: 52px;
+      min-height: 52px;
+      border-radius: 24px 24px 0 0;
+      background: linear-gradient(135deg, var(--sacw-btn-start), var(--sacw-btn-end));
+      color: var(--sacw-text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     .sacw-header-dot {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #4ade80;
+      background: var(--sacw-status);
       flex-shrink: 0;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
     }
+    .sacw-header-dot[data-hidden="true"] { display: none; }
 
     .sacw-header-title {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 650;
       letter-spacing: 0.02em;
       white-space: nowrap;
       overflow: hidden;
@@ -242,10 +352,10 @@
       appearance: none;
       border: none;
       background: transparent;
-      color: ${hexToRgba(textColor, 0.75)};
-      width: 30px;
-      height: 30px;
-      border-radius: 7px;
+      color: var(--sacw-text-75);
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -255,17 +365,52 @@
       text-decoration: none;
     }
     .sacw-header-btn:hover {
-      background: ${hexToRgba(textColor, 0.15)};
-      color: ${textColor};
+      background: var(--sacw-text-15);
+      color: var(--sacw-text);
     }
     .sacw-header-btn:active { opacity: 0.7; }
     .sacw-header-btn:focus-visible {
-      outline: 2px solid ${hexToRgba(textColor, 0.7)};
+      outline: 2px solid var(--sacw-text-70);
       outline-offset: -2px;
     }
     .sacw-header-btn svg {
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
+    }
+
+    /* ── Floating close button (headerless mode) ── */
+    .sacw-close-floating {
+      position: absolute;
+      top: -22px;
+      right: -22px;
+      z-index: 5;
+      appearance: none;
+      border: 0;
+      background: #fff;
+      color: #102844;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 12px 28px rgba(15, 31, 48, 0.18),
+        0 0 0 1px rgba(15, 31, 48, 0.08);
+      transition: background 160ms ease, transform 160ms ease;
+    }
+    .sacw-close-floating:hover {
+      background: #f4f8fb;
+      transform: translateY(-1px);
+    }
+    .sacw-close-floating:focus-visible {
+      outline: 2px solid var(--sacw-btn-end);
+      outline-offset: 2px;
+    }
+    .sacw-close-floating svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* ── Iframe body area ── */
@@ -273,12 +418,19 @@
       flex: 1 1 auto;
       min-height: 0;
       position: relative;
+      overflow: hidden;
+      border-radius: 0 0 24px 24px;
+      background: var(--sacw-window-bg);
+    }
+    .sacw-chatbox[data-header="false"] .sacw-body {
+      border-radius: 24px;
     }
     .sacw-body iframe {
       width: 100%;
       height: 100%;
       border: none;
       display: block;
+      background: var(--sacw-window-bg);
     }
 
     /* ── Loading state ── */
@@ -290,7 +442,7 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      background: #f9fafb;
+      background: var(--sacw-window-bg);
       transition: opacity 0.4s ease;
       z-index: 1;
     }
@@ -307,7 +459,7 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: ${buttonColor};
+      background: var(--sacw-btn-start);
       opacity: 0.3;
       animation: sacw-dot-bounce 1.4s ease-in-out infinite;
     }
@@ -326,29 +478,34 @@
 
     /* ── Responsive: tablet ── */
     @media (max-width: 1200px) {
-      .sacw-launcher { bottom: 24px; right: 24px; width: 56px; height: 56px; }
+      .sacw-launcher { bottom: 24px; right: 24px; }
+      .sacw-teaser { bottom: 34px; right: 112px; }
       .sacw-chatbox {
-        bottom: 96px;
+        bottom: 114px;
         right: 24px;
-        width: 390px;
-        height: 580px;
-        max-height: calc(100dvh - 108px);
+        width: min(500px, calc(100vw - 48px));
+        height: min(720px, calc(100vh - 144px));
+        height: min(720px, calc(100dvh - 144px));
       }
     }
 
-    /* ── Responsive: mobile → fullscreen ── */
+    /* ── Responsive: mobile ── */
     @media (max-width: 560px) {
-      .sacw-launcher { bottom: 16px; right: 16px; width: 52px; height: 52px; }
-      .sacw-launcher svg { width: 24px; height: 24px; }
+      .sacw-launcher { bottom: 16px; right: 16px; width: 64px; height: 64px; }
+      .sacw-launcher svg { width: 34px; height: 34px; }
+      .sacw-teaser { right: 16px; bottom: 92px; max-width: calc(100vw - 32px); }
       .sacw-chatbox {
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        max-height: 100%;
-        border-radius: 0;
-        bottom: auto;
-        right: auto;
+        width: calc(100vw - 20px);
+        height: calc(100vh - 102px);
+        height: calc(100dvh - 102px);
+        right: 10px;
+        bottom: 84px;
+        border-radius: 20px;
       }
+      .sacw-header { border-radius: 20px 20px 0 0; }
+      .sacw-body { border-radius: 0 0 20px 20px; }
+      .sacw-chatbox[data-header="false"] .sacw-body { border-radius: 20px; }
+      .sacw-close-floating { top: 8px; right: 8px; width: 38px; height: 38px; }
     }
 
     /* ── Reduced motion ── */
@@ -356,16 +513,37 @@
       .sacw-launcher,
       .sacw-launcher svg,
       .sacw-chatbox,
-      .sacw-close,
+      .sacw-teaser,
+      .sacw-close-floating,
+      .sacw-header-btn,
       .sacw-loading {
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
       }
+      .sacw-launcher::after {
+        animation: none;
+      }
     }
   `;
-  document.head.appendChild(style);
 
   /* ── Build DOM ── */
+
+  // Single container so the whole widget can be found/removed as one node;
+  // also carries the CSS custom properties derived from the configuration
+  var container = document.createElement('div');
+  container.className = 'sacw-root';
+  container.style.setProperty('--sacw-btn-start', buttonColor);
+  container.style.setProperty('--sacw-btn-mid', mixHex(buttonColor, buttonColorEnd, 0.5));
+  container.style.setProperty('--sacw-btn-end', buttonColorEnd);
+  container.style.setProperty('--sacw-btn-start-45', hexToRgba(buttonColor, 0.45));
+  container.style.setProperty('--sacw-text', textColor);
+  container.style.setProperty('--sacw-text-75', hexToRgba(textColor, 0.75));
+  container.style.setProperty('--sacw-text-15', hexToRgba(textColor, 0.15));
+  container.style.setProperty('--sacw-text-70', hexToRgba(textColor, 0.7));
+  container.style.setProperty('--sacw-status', statusDotColor);
+  container.style.setProperty('--sacw-status-45', hexToRgba(statusDotColor, 0.45));
+  container.style.setProperty('--sacw-status-0', hexToRgba(statusDotColor, 0));
+  container.style.setProperty('--sacw-window-bg', windowBg);
 
   // Invisible backdrop for click-away-to-close
   var backdrop = document.createElement('div');
@@ -376,26 +554,28 @@
   var launcher = document.createElement('button');
   launcher.className = 'sacw-launcher sacw-launcher--pulse';
   launcher.setAttribute('type', 'button');
-  launcher.setAttribute('aria-label', 'Chat \u00f6ffnen');
+  launcher.setAttribute('aria-label', 'Chat öffnen');
   launcher.setAttribute('aria-haspopup', 'dialog');
   launcher.setAttribute('aria-expanded', 'false');
-  launcher.innerHTML =
-    '<svg class="sacw-icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-    ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7' +
-    ' 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8' +
-    ' 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48' +
-    ' 0 0 1 8 8v.5z"/></svg>' +
-    '<svg class="sacw-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<line x1="18" y1="6" x2="6" y2="18"/>' +
-    '<line x1="6" y1="6" x2="18" y2="18"/></svg>' +
-    '<span class="sacw-launcher-badge" aria-hidden="true"></span>';
+  launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
+  launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
 
-  // Badge disappears while chat is open (not needed when X is shown)
   launcher.addEventListener('animationend', function () {
     launcher.classList.remove('sacw-launcher--pulse');
   });
+
+  // Teaser bubble (only when configured)
+  var teaser = null;
+  var teaserDismissed = false;
+  if (teaserText) {
+    teaser = document.createElement('div');
+    teaser.className = 'sacw-teaser';
+    teaser.setAttribute('aria-hidden', 'true');
+    var teaserContent = document.createElement('div');
+    teaserContent.className = 'sacw-teaser-content';
+    teaserContent.textContent = teaserText;
+    teaser.appendChild(teaserContent);
+  }
 
   // Chat window
   var chatbox = document.createElement('div');
@@ -404,48 +584,59 @@
   chatbox.setAttribute('aria-modal', 'false');
   chatbox.setAttribute('aria-label', headerTitle);
   chatbox.setAttribute('data-open', 'false');
+  chatbox.setAttribute('data-header', showHeader ? 'true' : 'false');
 
-  // Header — single slim bar with: dot · title · [open-in-tab] · [close]
-  var header = document.createElement('div');
-  header.className = 'sacw-header';
+  var closeBtn;
 
-  var dot = document.createElement('span');
-  dot.className = 'sacw-header-dot';
-  dot.setAttribute('aria-hidden', 'true');
+  if (showHeader) {
+    // Header — single slim bar with: dot · title · [open-in-tab] · [close]
+    var header = document.createElement('div');
+    header.className = 'sacw-header';
 
-  var titleEl = document.createElement('span');
-  titleEl.className = 'sacw-header-title';
-  titleEl.textContent = headerTitle;
+    var dot = document.createElement('span');
+    dot.className = 'sacw-header-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    dot.setAttribute('data-hidden', showStatusDot ? 'false' : 'true');
 
-  // "Open in new tab" icon button
-  var newTabBtn = document.createElement('a');
-  newTabBtn.className = 'sacw-header-btn';
-  newTabBtn.href = finalUrl;
-  newTabBtn.target = '_blank';
-  newTabBtn.rel = 'noopener noreferrer';
-  newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
-  newTabBtn.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
-    '<polyline points="15 3 21 3 21 9"/>' +
-    '<line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    var titleEl = document.createElement('span');
+    titleEl.className = 'sacw-header-title';
+    titleEl.textContent = headerTitle;
 
-  // Close button
-  var closeBtn = document.createElement('button');
-  closeBtn.className = 'sacw-header-btn';
-  closeBtn.setAttribute('type', 'button');
-  closeBtn.setAttribute('aria-label', 'Chat schlie\u00dfen');
-  closeBtn.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-    ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<line x1="18" y1="6" x2="6" y2="18"/>' +
-    '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    // "Open in new tab" icon button
+    var newTabBtn = document.createElement('a');
+    newTabBtn.className = 'sacw-header-btn';
+    newTabBtn.href = finalUrl;
+    newTabBtn.target = '_blank';
+    newTabBtn.rel = 'noopener noreferrer';
+    newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
+    newTabBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+      ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+      '<polyline points="15 3 21 3 21 9"/>' +
+      '<line x1="10" y1="14" x2="21" y2="3"/></svg>';
 
-  header.appendChild(dot);
-  header.appendChild(titleEl);
-  header.appendChild(newTabBtn);
-  header.appendChild(closeBtn);
+    // Close button
+    closeBtn = document.createElement('button');
+    closeBtn.className = 'sacw-header-btn';
+    closeBtn.setAttribute('type', 'button');
+    closeBtn.setAttribute('aria-label', 'Chat schließen');
+    closeBtn.innerHTML = CLOSE_X_ICON;
+
+    header.appendChild(dot);
+    header.appendChild(titleEl);
+    header.appendChild(newTabBtn);
+    header.appendChild(closeBtn);
+    chatbox.appendChild(header);
+  } else {
+    // Headerless mode — floating close button on the window corner
+    closeBtn = document.createElement('button');
+    closeBtn.className = 'sacw-close-floating';
+    closeBtn.setAttribute('type', 'button');
+    closeBtn.setAttribute('aria-label', 'Chat schließen');
+    closeBtn.innerHTML = CLOSE_X_ICON;
+    chatbox.appendChild(closeBtn);
+  }
 
   // Body with loading spinner + iframe
   var body = document.createElement('div');
@@ -468,20 +659,30 @@
 
   body.appendChild(loading);
   body.appendChild(iframe);
-
-  chatbox.appendChild(header);
   chatbox.appendChild(body);
 
-  document.body.appendChild(backdrop);
-  document.body.appendChild(chatbox);
-  document.body.appendChild(launcher);
+  container.appendChild(style);
+  container.appendChild(backdrop);
+  container.appendChild(chatbox);
+  if (teaser) container.appendChild(teaser);
+  container.appendChild(launcher);
+  document.body.appendChild(container);
 
   /* ── State management ── */
   var isOpen = false;
 
+  function hideTeaser() {
+    if (!teaser || teaserDismissed) return;
+    teaserDismissed = true;
+    teaser.setAttribute('data-visible', 'false');
+    setTimeout(function () { teaser.style.display = 'none'; }, 250);
+  }
+
   function openChat() {
     if (isOpen) return;
     isOpen = true;
+
+    hideTeaser();
 
     // Lazy-load iframe on first open
     if (!iframeLoaded) {
@@ -524,6 +725,17 @@
   launcher.addEventListener('click', toggleChat);
   closeBtn.addEventListener('click', closeChat);
   backdrop.addEventListener('click', closeChat);
+  if (teaser) {
+    teaser.addEventListener('click', openChat);
+    // Slide the teaser in shortly after page load
+    setTimeout(function () {
+      if (teaserDismissed) return;
+      teaser.style.display = 'block';
+      requestAnimationFrame(function () {
+        teaser.setAttribute('data-visible', 'true');
+      });
+    }, 900);
+  }
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && isOpen) {
