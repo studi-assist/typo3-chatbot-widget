@@ -50,6 +50,12 @@
         cursor: pointer; font-size: 11px; font-weight: 600;
       }
       .snippet button:hover { background: #eaf1f8; }
+      .status {
+        font-size: 12px; padding: 7px 10px; border-radius: 8px;
+        background: #f5f8fb; border: 1px solid #ccd4dd; color: #34404d;
+      }
+      .status[data-state="ok"] { background: #eefaf1; border-color: #b7e4c3; color: #1f7a3d; }
+      .status[data-state="off"] { background: #fdf0ef; border-color: #f2c4c0; color: #a13a32; }
     </style>
   </head>
   <body>
@@ -66,6 +72,9 @@
         <button type="button" data-preset="sa">StudiAssist</button>
         <button type="button" data-preset="defaults">Ext. defaults</button>
       </div>
+
+      <h3>Availability</h3>
+      <div class="status" id="availabilityStatus">checking…</div>
 
       <h3>Content</h3>
       <div class="row"><label>Chat URL</label><input type="text" id="chatbotUrl" /></div>
@@ -247,6 +256,37 @@
           ].join("\n");
         }
 
+        // Mirrors the loader's availability pre-check so the panel can explain
+        // WHY the widget is hidden (e.g. monthly limit reached) instead of it
+        // silently not appearing
+        function checkAvailability(c) {
+          var box = el("availabilityStatus");
+          box.removeAttribute("data-state");
+          box.textContent = "checking " + "/api/chatbot-status…";
+          try {
+            var u = new URL(c.chatbotUrl);
+            var m = u.pathname.match(/\/chat\/([A-Za-z0-9_-]+)/);
+            var instance = m ? m[1] : "default";
+            fetch(u.origin + "/api/chatbot-status?instance=" + encodeURIComponent(instance))
+              .then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (d) {
+                if (d && d.available === false) {
+                  box.setAttribute("data-state", "off");
+                  box.textContent = "unavailable (" + (d.reason || "no reason given") + ") → widget hidden";
+                } else {
+                  box.setAttribute("data-state", "ok");
+                  box.textContent = "available (instance: " + instance + ") → widget shown";
+                }
+              })
+              .catch(function () {
+                box.setAttribute("data-state", "ok");
+                box.textContent = "status check failed → widget fails open (shown)";
+              });
+          } catch (_) {
+            box.textContent = "invalid chat URL";
+          }
+        }
+
         var scriptCounter = 0;
         function rebuild() {
           var c = readConfig();
@@ -257,11 +297,13 @@
           }
           el("buttonColorEnd").disabled = el("buttonColorEndAuto").checked;
           el("typoscript").value = typoScriptFor(c);
+          checkAvailability(c);
 
           // Tear down the previous widget instance …
           var wasOpen = document.querySelector('.sacw-chatbox[data-open="true"]') !== null;
           document.querySelectorAll(".sacw-root").forEach(function (n) { n.remove(); });
           window.__studiAssistChatbotWidgetInitialized = false;
+          window.studiAssistChatbot = undefined;
           var oldScript = document.getElementById("sacw-demo-script");
           if (oldScript) oldScript.remove();
 
@@ -284,7 +326,18 @@
           s.id = "sacw-demo-script";
           s.src = "Resources/Public/JavaScript/widget-loader.js?v=" + (++scriptCounter);
           s.onload = function () {
-            if (wasOpen && window.studiAssistChatbot) window.studiAssistChatbot.open();
+            if (!wasOpen) return;
+            // The loader mounts asynchronously (availability pre-check), so
+            // poll briefly for the fresh API instead of opening immediately
+            var tries = 0;
+            var poll = setInterval(function () {
+              if (window.studiAssistChatbot) {
+                clearInterval(poll);
+                window.studiAssistChatbot.open();
+              } else if (++tries > 30) {
+                clearInterval(poll);
+              }
+            }, 100);
           };
           document.body.appendChild(s);
         }

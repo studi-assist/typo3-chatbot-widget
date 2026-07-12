@@ -1,127 +1,192 @@
 (function () {
   'use strict';
 
+  // Entry point: validate config, then gate the widget on chatbot availability.
   function init() {
     const root = document.querySelector('.studi-assist-chatbot-root');
     if (!root) return;
 
-  const chatbotUrl = root.getAttribute('data-chatbot-url');
-  if (!chatbotUrl) return;
+    const chatbotUrl = root.getAttribute('data-chatbot-url');
+    if (!chatbotUrl) return;
 
-  /* ── Helpers ── */
-  function normalizeHex(hex) {
-    if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
-      return '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
-    }
-    return hex;
-  }
-
-  // Returns a valid 6-digit hex color or the fallback (never blocks rendering)
-  function sanitizeHex(value, fallback) {
-    var v = (value || '').trim();
-    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v) ? normalizeHex(v) : fallback;
-  }
-
-  function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
-  }
-
-  function darkenHex(hex, amount) {
-    var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amount);
-    var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
-    var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
-    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
-  }
-
-  function mixHex(a, b, t) {
-    function ch(i) {
-      var x = parseInt(a.slice(i, i + 2), 16);
-      var y = parseInt(b.slice(i, i + 2), 16);
-      return Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
-    }
-    return '#' + ch(1) + ch(3) + ch(5);
-  }
-
-  /* ── Read configuration ── */
-  const buttonColor    = sanitizeHex(root.getAttribute('data-button-color'), '#779EC4');
-  // Empty gradient end = derive one from the main color, so existing
-  // single-color configs automatically get a matching gradient
-  const buttonColorEnd = sanitizeHex(root.getAttribute('data-button-color-end'), darkenHex(buttonColor, 60));
-  const textColor      = sanitizeHex(root.getAttribute('data-text-color'), '#ffffff');
-  const statusDotColor = sanitizeHex(root.getAttribute('data-status-dot-color'), '#34c759');
-  const windowBg       = sanitizeHex(root.getAttribute('data-window-background-color'), '#ffffff');
-  const headerTitle    = root.getAttribute('data-header-title') || 'StudiAssist';
-  const studyProgram   = root.getAttribute('data-study-program') || '';
-  const teaserText     = (root.getAttribute('data-teaser-text') || '').trim();
-  const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
-  const showHeader     = root.getAttribute('data-show-header') !== '0';
-
-  var iconStyle = root.getAttribute('data-icon-style') || 'chat';
-
-  // Security: only allow http(s) URLs
-  try {
-    const parsed = new URL(chatbotUrl, window.location.origin);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
-  } catch (_) {
-    return;
-  }
-
-  // Build final URL – append ?sp= when a study program is configured
-  let finalUrl = chatbotUrl;
-  if (studyProgram.trim()) {
+    // Parse the chatbot URL once. Its origin is the tenant-prefixed host
+    // (e.g. https://uni-mannheim.studi-assist.de), which is exactly where the
+    // status endpoint lives — the backend resolves the tenant from that host.
+    let parsedChatbotUrl;
     try {
-      const u = new URL(chatbotUrl, window.location.origin);
-      u.searchParams.set('sp', studyProgram.trim().toLowerCase());
-      finalUrl = u.href;
-    } catch (_) {}
+      parsedChatbotUrl = new URL(chatbotUrl, window.location.origin);
+      if (parsedChatbotUrl.protocol !== 'https:' && parsedChatbotUrl.protocol !== 'http:') return;
+    } catch (_) {
+      return;
+    }
+
+    // Avoid double-init. Set before the async check so a second script include
+    // can't fire a second availability fetch / build.
+    if (window.__studiAssistChatbotWidgetInitialized) return;
+    window.__studiAssistChatbotWidgetInitialized = true;
+
+    // Only render the launcher if the chatbot is available (not over its monthly
+    // cap and not turned off). Fails OPEN — never hides on our own error.
+    fetchChatbotAvailability(parsedChatbotUrl).then(function (available) {
+      if (available) buildWidget();
+    });
   }
 
-  // Avoid double-init
-  if (window.__studiAssistChatbotWidgetInitialized) return;
-  window.__studiAssistChatbotWidgetInitialized = true;
+  // Pre-flight availability probe.
+  // Calls /api/chatbot-status on the SAME origin as the chatbot (the tenant
+  // subdomain), so the backend resolves the tenant from the Host header — the
+  // widget never needs to know the tenant key. Plain GET, no credentials, no
+  // custom headers => a "simple" CORS request (no preflight), matching the
+  // endpoint's open, credential-less CORS. Fails OPEN on any error/timeout.
+  function fetchChatbotAvailability(parsedChatbotUrl) {
+    try {
+      // Instance = the /chat/<instance>/... path segment. For
+      // /chat/studieninfo/de this is "studieninfo"; falls back to "default".
+      var m = parsedChatbotUrl.pathname.match(/\/chat\/([A-Za-z0-9_-]+)/);
+      var instance = m ? m[1] : 'default';
+      var statusUrl = parsedChatbotUrl.origin + '/api/chatbot-status?instance=' + encodeURIComponent(instance);
 
-  /* ── Launcher icons ── */
-  var ICONS = {
-    chat:
-      '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M8.5 20.75c0-6.7 6.55-12.13 14.63-12.13s14.62 5.43 14.62 12.13-6.55 12.12-14.62 12.12c-1.42 0-2.79-.17-4.09-.5l-6.63 3.24c-.77.38-1.61-.37-1.3-1.17l1.88-5.02c-2.75-2.18-4.49-5.28-4.49-8.67Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>' +
-      '<path d="M17.25 20.9h.04M23.25 20.9h.04M29.25 20.9h.04" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/></svg>',
-    sparkle:
-      '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M24 5.5c1.1 8.2 5.3 12.4 13.5 13.5C29.3 20.1 25.1 24.3 24 32.5 22.9 24.3 18.7 20.1 10.5 19 18.7 17.9 22.9 13.7 24 5.5Z" fill="currentColor"/>' +
-      '<path d="M37.5 27c.5 3.4 2.1 5 5.5 5.5-3.4.5-5 2.1-5.5 5.5-.5-3.4-2.1-5-5.5-5.5 3.4-.5 5-2.1 5.5-5.5Z" fill="currentColor"/></svg>',
-    cap:
-      '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
-      '<path d="M24 9.5 5.5 18 24 26.5 42.5 18 24 9.5Z" fill="currentColor"/>' +
-      '<path d="M13.5 22.5V31c0 2.9 4.7 5.2 10.5 5.2S34.5 33.9 34.5 31v-8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M42.5 18v9.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
-      '<circle cx="42.5" cy="29.5" r="2.1" fill="currentColor"/></svg>',
-    robot:
-      '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="10.5" y="16.5" width="27" height="20" rx="6.5" stroke="currentColor" stroke-width="3.2"/>' +
-      '<path d="M24 11.5v5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
-      '<circle cx="24" cy="9" r="2.4" fill="currentColor"/>' +
-      '<circle cx="19" cy="26" r="2.6" fill="currentColor"/><circle cx="29" cy="26" r="2.6" fill="currentColor"/>' +
-      '<path d="M6.5 24.5v4M41.5 24.5v4" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>',
-  };
-  if (!ICONS[iconStyle]) iconStyle = 'chat';
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 2000);
 
-  var LAUNCHER_CLOSE_ICON =
-    '<svg class="sacw-icon-close" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
-    '<path d="M14.5 14.5 33.5 33.5M33.5 14.5 14.5 33.5" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
+      return fetch(statusUrl, { method: 'GET', signal: controller.signal })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          clearTimeout(timer);
+          // Hide ONLY when the server explicitly says available:false.
+          return !data || data.available !== false;
+        })
+        .catch(function () {
+          clearTimeout(timer);
+          return true; // timeout / network / CORS => show the widget
+        });
+    } catch (_) {
+      return Promise.resolve(true); // fetch/AbortController unavailable => show (fail open)
+    }
+  }
 
-  var CLOSE_X_ICON =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-    ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<line x1="18" y1="6" x2="6" y2="18"/>' +
-    '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  // Builds and mounts the full widget. Assumes availability was already checked.
+  function buildWidget() {
+    // Idempotency: the availability check makes init async, so guard against a
+    // second build (e.g. a stale pending fetch after the widget was rebuilt)
+    if (document.querySelector('.sacw-root')) return;
 
-  /* ── Inject styles (static — configuration flows in via CSS variables) ── */
-  var style = document.createElement('style');
-  style.textContent = `
+    const root = document.querySelector('.studi-assist-chatbot-root');
+    if (!root) return;
+
+    const chatbotUrl = root.getAttribute('data-chatbot-url');
+    if (!chatbotUrl) return;
+
+    /* ── Helpers ── */
+    function normalizeHex(hex) {
+      if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+        return '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+      }
+      return hex;
+    }
+
+    // Returns a valid 6-digit hex color or the fallback (never blocks rendering)
+    function sanitizeHex(value, fallback) {
+      var v = (value || '').trim();
+      return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v) ? normalizeHex(v) : fallback;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+    }
+
+    function darkenHex(hex, amount) {
+      var r = Math.max(0, parseInt(hex.slice(1, 3), 16) - amount);
+      var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
+      var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
+      return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+    }
+
+    function mixHex(a, b, t) {
+      function ch(i) {
+        var x = parseInt(a.slice(i, i + 2), 16);
+        var y = parseInt(b.slice(i, i + 2), 16);
+        return Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
+      }
+      return '#' + ch(1) + ch(3) + ch(5);
+    }
+
+    /* ── Read configuration ── */
+    const buttonColor    = sanitizeHex(root.getAttribute('data-button-color'), '#779EC4');
+    // Empty gradient end = derive one from the main color, so existing
+    // single-color configs automatically get a matching gradient
+    const buttonColorEnd = sanitizeHex(root.getAttribute('data-button-color-end'), darkenHex(buttonColor, 60));
+    const textColor      = sanitizeHex(root.getAttribute('data-text-color'), '#ffffff');
+    const statusDotColor = sanitizeHex(root.getAttribute('data-status-dot-color'), '#34c759');
+    const windowBg       = sanitizeHex(root.getAttribute('data-window-background-color'), '#ffffff');
+    const headerTitle    = root.getAttribute('data-header-title') || 'StudiAssist';
+    const studyProgram   = root.getAttribute('data-study-program') || '';
+    const teaserText     = (root.getAttribute('data-teaser-text') || '').trim();
+    const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
+    const showHeader     = root.getAttribute('data-show-header') !== '0';
+
+    var iconStyle = root.getAttribute('data-icon-style') || 'chat';
+
+    // Security: only allow http(s) URLs
+    try {
+      const parsed = new URL(chatbotUrl, window.location.origin);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
+    } catch (_) {
+      return;
+    }
+
+    // Build final URL – append ?sp= when a study program is configured
+    let finalUrl = chatbotUrl;
+    if (studyProgram.trim()) {
+      try {
+        const u = new URL(chatbotUrl, window.location.origin);
+        u.searchParams.set('sp', studyProgram.trim().toLowerCase());
+        finalUrl = u.href;
+      } catch (_) {}
+    }
+
+    /* ── Launcher icons ── */
+    var ICONS = {
+      chat:
+        '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M8.5 20.75c0-6.7 6.55-12.13 14.63-12.13s14.62 5.43 14.62 12.13-6.55 12.12-14.62 12.12c-1.42 0-2.79-.17-4.09-.5l-6.63 3.24c-.77.38-1.61-.37-1.3-1.17l1.88-5.02c-2.75-2.18-4.49-5.28-4.49-8.67Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>' +
+        '<path d="M17.25 20.9h.04M23.25 20.9h.04M29.25 20.9h.04" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/></svg>',
+      sparkle:
+        '<svg class="sacw-icon-main" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M24 5.5c1.1 8.2 5.3 12.4 13.5 13.5C29.3 20.1 25.1 24.3 24 32.5 22.9 24.3 18.7 20.1 10.5 19 18.7 17.9 22.9 13.7 24 5.5Z" fill="currentColor"/>' +
+        '<path d="M37.5 27c.5 3.4 2.1 5 5.5 5.5-3.4.5-5 2.1-5.5 5.5-.5-3.4-2.1-5-5.5-5.5 3.4-.5 5-2.1 5.5-5.5Z" fill="currentColor"/></svg>',
+      cap:
+        '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M24 9.5 5.5 18 24 26.5 42.5 18 24 9.5Z" fill="currentColor"/>' +
+        '<path d="M13.5 22.5V31c0 2.9 4.7 5.2 10.5 5.2S34.5 33.9 34.5 31v-8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M42.5 18v9.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
+        '<circle cx="42.5" cy="29.5" r="2.1" fill="currentColor"/></svg>',
+      robot:
+        '<svg class="sacw-icon-main" viewBox="0 0 48 48" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="10.5" y="16.5" width="27" height="20" rx="6.5" stroke="currentColor" stroke-width="3.2"/>' +
+        '<path d="M24 11.5v5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>' +
+        '<circle cx="24" cy="9" r="2.4" fill="currentColor"/>' +
+        '<circle cx="19" cy="26" r="2.6" fill="currentColor"/><circle cx="29" cy="26" r="2.6" fill="currentColor"/>' +
+        '<path d="M6.5 24.5v4M41.5 24.5v4" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>',
+    };
+    if (!ICONS[iconStyle]) iconStyle = 'chat';
+
+    var LAUNCHER_CLOSE_ICON =
+      '<svg class="sacw-icon-close" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M14.5 14.5 33.5 33.5M33.5 14.5 14.5 33.5" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg>';
+
+    var CLOSE_X_ICON =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+      ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<line x1="18" y1="6" x2="6" y2="18"/>' +
+      '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    /* ── Inject styles (static — configuration flows in via CSS variables) ── */
+    var style = document.createElement('style');
+    style.textContent = `
     /* ── Backdrop (click-away to close) ── */
     .sacw-backdrop {
       position: fixed;
@@ -526,226 +591,226 @@
     }
   `;
 
-  /* ── Build DOM ── */
+    /* ── Build DOM ── */
 
-  // Single container so the whole widget can be found/removed as one node;
-  // also carries the CSS custom properties derived from the configuration
-  var container = document.createElement('div');
-  container.className = 'sacw-root';
-  container.style.setProperty('--sacw-btn-start', buttonColor);
-  container.style.setProperty('--sacw-btn-mid', mixHex(buttonColor, buttonColorEnd, 0.5));
-  container.style.setProperty('--sacw-btn-end', buttonColorEnd);
-  container.style.setProperty('--sacw-btn-start-45', hexToRgba(buttonColor, 0.45));
-  container.style.setProperty('--sacw-text', textColor);
-  container.style.setProperty('--sacw-text-75', hexToRgba(textColor, 0.75));
-  container.style.setProperty('--sacw-text-15', hexToRgba(textColor, 0.15));
-  container.style.setProperty('--sacw-text-70', hexToRgba(textColor, 0.7));
-  container.style.setProperty('--sacw-status', statusDotColor);
-  container.style.setProperty('--sacw-status-45', hexToRgba(statusDotColor, 0.45));
-  container.style.setProperty('--sacw-status-0', hexToRgba(statusDotColor, 0));
-  container.style.setProperty('--sacw-window-bg', windowBg);
+    // Single container so the whole widget can be found/removed as one node;
+    // also carries the CSS custom properties derived from the configuration
+    var container = document.createElement('div');
+    container.className = 'sacw-root';
+    container.style.setProperty('--sacw-btn-start', buttonColor);
+    container.style.setProperty('--sacw-btn-mid', mixHex(buttonColor, buttonColorEnd, 0.5));
+    container.style.setProperty('--sacw-btn-end', buttonColorEnd);
+    container.style.setProperty('--sacw-btn-start-45', hexToRgba(buttonColor, 0.45));
+    container.style.setProperty('--sacw-text', textColor);
+    container.style.setProperty('--sacw-text-75', hexToRgba(textColor, 0.75));
+    container.style.setProperty('--sacw-text-15', hexToRgba(textColor, 0.15));
+    container.style.setProperty('--sacw-text-70', hexToRgba(textColor, 0.7));
+    container.style.setProperty('--sacw-status', statusDotColor);
+    container.style.setProperty('--sacw-status-45', hexToRgba(statusDotColor, 0.45));
+    container.style.setProperty('--sacw-status-0', hexToRgba(statusDotColor, 0));
+    container.style.setProperty('--sacw-window-bg', windowBg);
 
-  // Invisible backdrop for click-away-to-close
-  var backdrop = document.createElement('div');
-  backdrop.className = 'sacw-backdrop';
-  backdrop.setAttribute('data-active', 'false');
-
-  // Launcher button
-  var launcher = document.createElement('button');
-  launcher.className = 'sacw-launcher sacw-launcher--pulse';
-  launcher.setAttribute('type', 'button');
-  launcher.setAttribute('aria-label', 'Chat öffnen');
-  launcher.setAttribute('aria-haspopup', 'dialog');
-  launcher.setAttribute('aria-expanded', 'false');
-  launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
-  launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
-
-  launcher.addEventListener('animationend', function () {
-    launcher.classList.remove('sacw-launcher--pulse');
-  });
-
-  // Teaser bubble (only when configured)
-  var teaser = null;
-  var teaserDismissed = false;
-  if (teaserText) {
-    teaser = document.createElement('div');
-    teaser.className = 'sacw-teaser';
-    teaser.setAttribute('aria-hidden', 'true');
-    var teaserContent = document.createElement('div');
-    teaserContent.className = 'sacw-teaser-content';
-    teaserContent.textContent = teaserText;
-    teaser.appendChild(teaserContent);
-  }
-
-  // Chat window
-  var chatbox = document.createElement('div');
-  chatbox.className = 'sacw-chatbox';
-  chatbox.setAttribute('role', 'dialog');
-  chatbox.setAttribute('aria-modal', 'false');
-  chatbox.setAttribute('aria-label', headerTitle);
-  chatbox.setAttribute('data-open', 'false');
-  chatbox.setAttribute('data-header', showHeader ? 'true' : 'false');
-
-  var closeBtn;
-
-  if (showHeader) {
-    // Header — single slim bar with: dot · title · [open-in-tab] · [close]
-    var header = document.createElement('div');
-    header.className = 'sacw-header';
-
-    var dot = document.createElement('span');
-    dot.className = 'sacw-header-dot';
-    dot.setAttribute('aria-hidden', 'true');
-    dot.setAttribute('data-hidden', showStatusDot ? 'false' : 'true');
-
-    var titleEl = document.createElement('span');
-    titleEl.className = 'sacw-header-title';
-    titleEl.textContent = headerTitle;
-
-    // "Open in new tab" icon button
-    var newTabBtn = document.createElement('a');
-    newTabBtn.className = 'sacw-header-btn';
-    newTabBtn.href = finalUrl;
-    newTabBtn.target = '_blank';
-    newTabBtn.rel = 'noopener noreferrer';
-    newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
-    newTabBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-      ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
-      '<polyline points="15 3 21 3 21 9"/>' +
-      '<line x1="10" y1="14" x2="21" y2="3"/></svg>';
-
-    // Close button
-    closeBtn = document.createElement('button');
-    closeBtn.className = 'sacw-header-btn';
-    closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Chat schließen');
-    closeBtn.innerHTML = CLOSE_X_ICON;
-
-    header.appendChild(dot);
-    header.appendChild(titleEl);
-    header.appendChild(newTabBtn);
-    header.appendChild(closeBtn);
-    chatbox.appendChild(header);
-  } else {
-    // Headerless mode — floating close button on the window corner
-    closeBtn = document.createElement('button');
-    closeBtn.className = 'sacw-close-floating';
-    closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Chat schließen');
-    closeBtn.innerHTML = CLOSE_X_ICON;
-    chatbox.appendChild(closeBtn);
-  }
-
-  // Body with loading spinner + iframe
-  var body = document.createElement('div');
-  body.className = 'sacw-body';
-
-  var loading = document.createElement('div');
-  loading.className = 'sacw-loading';
-  loading.setAttribute('data-hidden', 'false');
-  loading.innerHTML =
-    '<div class="sacw-loading-dots">' +
-    '<span></span><span></span><span></span>' +
-    '</div>' +
-    '<span class="sacw-loading-text">Wird geladen…</span>';
-
-  var iframe = document.createElement('iframe');
-  iframe.setAttribute('title', headerTitle);
-  iframe.setAttribute('loading', 'lazy');
-  iframe.setAttribute('allow', 'clipboard-write');
-  var iframeLoaded = false;
-
-  body.appendChild(loading);
-  body.appendChild(iframe);
-  chatbox.appendChild(body);
-
-  container.appendChild(style);
-  container.appendChild(backdrop);
-  container.appendChild(chatbox);
-  if (teaser) container.appendChild(teaser);
-  container.appendChild(launcher);
-  document.body.appendChild(container);
-
-  /* ── State management ── */
-  var isOpen = false;
-
-  function hideTeaser() {
-    if (!teaser || teaserDismissed) return;
-    teaserDismissed = true;
-    teaser.setAttribute('data-visible', 'false');
-    setTimeout(function () { teaser.style.display = 'none'; }, 250);
-  }
-
-  function openChat() {
-    if (isOpen) return;
-    isOpen = true;
-
-    hideTeaser();
-
-    // Lazy-load iframe on first open
-    if (!iframeLoaded) {
-      iframeLoaded = true;
-      loading.setAttribute('data-hidden', 'false'); // ensure overlay is visible
-      iframe.addEventListener('load', function onIframeLoad() {
-        iframe.removeEventListener('load', onIframeLoad);
-        // Delay hiding so SPA (React/Vue/etc.) has time to render before we reveal it
-        setTimeout(function () {
-          loading.setAttribute('data-hidden', 'true');
-        }, 600);
-      });
-      iframe.src = finalUrl;
-    }
-
-    chatbox.setAttribute('data-open', 'true');
-    launcher.setAttribute('aria-expanded', 'true');
-    backdrop.setAttribute('data-active', 'true');
-
-    // Focus the close button for keyboard users
-    requestAnimationFrame(function () { closeBtn.focus(); });
-  }
-
-  function closeChat() {
-    if (!isOpen) return;
-    isOpen = false;
-
-    chatbox.setAttribute('data-open', 'false');
-    launcher.setAttribute('aria-expanded', 'false');
+    // Invisible backdrop for click-away-to-close
+    var backdrop = document.createElement('div');
+    backdrop.className = 'sacw-backdrop';
     backdrop.setAttribute('data-active', 'false');
 
-    launcher.focus();
-  }
+    // Launcher button
+    var launcher = document.createElement('button');
+    launcher.className = 'sacw-launcher sacw-launcher--pulse';
+    launcher.setAttribute('type', 'button');
+    launcher.setAttribute('aria-label', 'Chat öffnen');
+    launcher.setAttribute('aria-haspopup', 'dialog');
+    launcher.setAttribute('aria-expanded', 'false');
+    launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
+    launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
 
-  function toggleChat() {
-    isOpen ? closeChat() : openChat();
-  }
+    launcher.addEventListener('animationend', function () {
+      launcher.classList.remove('sacw-launcher--pulse');
+    });
 
-  /* ── Event listeners ── */
-  launcher.addEventListener('click', toggleChat);
-  closeBtn.addEventListener('click', closeChat);
-  backdrop.addEventListener('click', closeChat);
-  if (teaser) {
-    teaser.addEventListener('click', openChat);
-    // Slide the teaser in shortly after page load
-    setTimeout(function () {
-      if (teaserDismissed) return;
-      teaser.style.display = 'block';
-      requestAnimationFrame(function () {
-        teaser.setAttribute('data-visible', 'true');
-      });
-    }, 900);
-  }
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && isOpen) {
-      e.preventDefault();
-      closeChat();
+    // Teaser bubble (only when configured)
+    var teaser = null;
+    var teaserDismissed = false;
+    if (teaserText) {
+      teaser = document.createElement('div');
+      teaser.className = 'sacw-teaser';
+      teaser.setAttribute('aria-hidden', 'true');
+      var teaserContent = document.createElement('div');
+      teaserContent.className = 'sacw-teaser-content';
+      teaserContent.textContent = teaserText;
+      teaser.appendChild(teaserContent);
     }
-  });
 
-  // Expose API for external use
-  window.studiAssistChatbot = { open: openChat, close: closeChat, toggle: toggleChat };
+    // Chat window
+    var chatbox = document.createElement('div');
+    chatbox.className = 'sacw-chatbox';
+    chatbox.setAttribute('role', 'dialog');
+    chatbox.setAttribute('aria-modal', 'false');
+    chatbox.setAttribute('aria-label', headerTitle);
+    chatbox.setAttribute('data-open', 'false');
+    chatbox.setAttribute('data-header', showHeader ? 'true' : 'false');
+
+    var closeBtn;
+
+    if (showHeader) {
+      // Header — single slim bar with: dot · title · [open-in-tab] · [close]
+      var header = document.createElement('div');
+      header.className = 'sacw-header';
+
+      var dot = document.createElement('span');
+      dot.className = 'sacw-header-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      dot.setAttribute('data-hidden', showStatusDot ? 'false' : 'true');
+
+      var titleEl = document.createElement('span');
+      titleEl.className = 'sacw-header-title';
+      titleEl.textContent = headerTitle;
+
+      // "Open in new tab" icon button
+      var newTabBtn = document.createElement('a');
+      newTabBtn.className = 'sacw-header-btn';
+      newTabBtn.href = finalUrl;
+      newTabBtn.target = '_blank';
+      newTabBtn.rel = 'noopener noreferrer';
+      newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
+      newTabBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+        '<polyline points="15 3 21 3 21 9"/>' +
+        '<line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+      // Close button
+      closeBtn = document.createElement('button');
+      closeBtn.className = 'sacw-header-btn';
+      closeBtn.setAttribute('type', 'button');
+      closeBtn.setAttribute('aria-label', 'Chat schließen');
+      closeBtn.innerHTML = CLOSE_X_ICON;
+
+      header.appendChild(dot);
+      header.appendChild(titleEl);
+      header.appendChild(newTabBtn);
+      header.appendChild(closeBtn);
+      chatbox.appendChild(header);
+    } else {
+      // Headerless mode — floating close button on the window corner
+      closeBtn = document.createElement('button');
+      closeBtn.className = 'sacw-close-floating';
+      closeBtn.setAttribute('type', 'button');
+      closeBtn.setAttribute('aria-label', 'Chat schließen');
+      closeBtn.innerHTML = CLOSE_X_ICON;
+      chatbox.appendChild(closeBtn);
+    }
+
+    // Body with loading spinner + iframe
+    var body = document.createElement('div');
+    body.className = 'sacw-body';
+
+    var loading = document.createElement('div');
+    loading.className = 'sacw-loading';
+    loading.setAttribute('data-hidden', 'false');
+    loading.innerHTML =
+      '<div class="sacw-loading-dots">' +
+      '<span></span><span></span><span></span>' +
+      '</div>' +
+      '<span class="sacw-loading-text">Wird geladen…</span>';
+
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('title', headerTitle);
+    iframe.setAttribute('loading', 'lazy');
+    iframe.setAttribute('allow', 'clipboard-write');
+    var iframeLoaded = false;
+
+    body.appendChild(loading);
+    body.appendChild(iframe);
+    chatbox.appendChild(body);
+
+    container.appendChild(style);
+    container.appendChild(backdrop);
+    container.appendChild(chatbox);
+    if (teaser) container.appendChild(teaser);
+    container.appendChild(launcher);
+    document.body.appendChild(container);
+
+    /* ── State management ── */
+    var isOpen = false;
+
+    function hideTeaser() {
+      if (!teaser || teaserDismissed) return;
+      teaserDismissed = true;
+      teaser.setAttribute('data-visible', 'false');
+      setTimeout(function () { teaser.style.display = 'none'; }, 250);
+    }
+
+    function openChat() {
+      if (isOpen) return;
+      isOpen = true;
+
+      hideTeaser();
+
+      // Lazy-load iframe on first open
+      if (!iframeLoaded) {
+        iframeLoaded = true;
+        loading.setAttribute('data-hidden', 'false'); // ensure overlay is visible
+        iframe.addEventListener('load', function onIframeLoad() {
+          iframe.removeEventListener('load', onIframeLoad);
+          // Delay hiding so SPA (React/Vue/etc.) has time to render before we reveal it
+          setTimeout(function () {
+            loading.setAttribute('data-hidden', 'true');
+          }, 600);
+        });
+        iframe.src = finalUrl;
+      }
+
+      chatbox.setAttribute('data-open', 'true');
+      launcher.setAttribute('aria-expanded', 'true');
+      backdrop.setAttribute('data-active', 'true');
+
+      // Focus the close button for keyboard users
+      requestAnimationFrame(function () { closeBtn.focus(); });
+    }
+
+    function closeChat() {
+      if (!isOpen) return;
+      isOpen = false;
+
+      chatbox.setAttribute('data-open', 'false');
+      launcher.setAttribute('aria-expanded', 'false');
+      backdrop.setAttribute('data-active', 'false');
+
+      launcher.focus();
+    }
+
+    function toggleChat() {
+      isOpen ? closeChat() : openChat();
+    }
+
+    /* ── Event listeners ── */
+    launcher.addEventListener('click', toggleChat);
+    closeBtn.addEventListener('click', closeChat);
+    backdrop.addEventListener('click', closeChat);
+    if (teaser) {
+      teaser.addEventListener('click', openChat);
+      // Slide the teaser in shortly after page load
+      setTimeout(function () {
+        if (teaserDismissed) return;
+        teaser.style.display = 'block';
+        requestAnimationFrame(function () {
+          teaser.setAttribute('data-visible', 'true');
+        });
+      }, 900);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        closeChat();
+      }
+    });
+
+    // Expose API for external use
+    window.studiAssistChatbot = { open: openChat, close: closeChat, toggle: toggleChat };
   }
 
   if (document.readyState === 'loading') {
