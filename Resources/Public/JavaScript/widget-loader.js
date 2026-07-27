@@ -236,12 +236,13 @@
       transition-duration: 0.1s;
     }
 
-    /* Status dot (online indicator) */
+    /* Status dot (online indicator) — sits ON the circle's rim (half outside)
+       so it reads clearly as a badge instead of blending into the button */
     .sacw-launcher::after {
       content: "";
       position: absolute;
-      top: 9px;
-      right: 9px;
+      top: -1px;
+      right: -1px;
       width: 14px;
       height: 14px;
       border-radius: 999px;
@@ -255,15 +256,19 @@
       70%  { box-shadow: 0 0 0 8px var(--sacw-status-0); }
       100% { box-shadow: 0 0 0 0 var(--sacw-status-0); }
     }
-    .sacw-launcher[aria-expanded="true"]::after,
+    .sacw-launcher[data-open="true"]::after,
     .sacw-launcher[data-status="off"]::after {
       display: none;
     }
 
-    /* Icon transitions */
+    /* Icon transitions. Visual open/close state is keyed to data-open (our own
+       attribute) — NOT aria-expanded, which host-page a11y/theme scripts are
+       known to rewrite on buttons they think they manage. */
     .sacw-launcher svg {
       width: 42px;
       height: 42px;
+      display: block;
+      color: var(--sacw-text);
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
                   opacity 0.2s ease;
       position: absolute;
@@ -276,11 +281,11 @@
       opacity: 0;
       transform: scale(0.5) rotate(-90deg);
     }
-    .sacw-launcher[aria-expanded="true"] .sacw-icon-main {
+    .sacw-launcher[data-open="true"] .sacw-icon-main {
       opacity: 0;
       transform: scale(0.5) rotate(90deg);
     }
-    .sacw-launcher[aria-expanded="true"] .sacw-icon-close {
+    .sacw-launcher[data-open="true"] .sacw-icon-close {
       opacity: 1;
       transform: scale(1) rotate(0deg);
     }
@@ -610,6 +615,18 @@
     container.style.setProperty('--sacw-status-0', hexToRgba(statusDotColor, 0));
     container.style.setProperty('--sacw-window-bg', windowBg);
 
+    // Render inside a Shadow DOM: host-page CSS (e.g. a university theme's
+    // button/svg rules) cannot restyle the widget, and host scripts that
+    // rewrite attributes on document-level queries cannot reach its internals.
+    // CSS custom properties set on the host element above still pierce through.
+    // Ancient browsers without attachShadow fall back to light DOM.
+    var mount;
+    try {
+      mount = container.attachShadow({ mode: 'open' });
+    } catch (_) {
+      mount = container;
+    }
+
     // Invisible backdrop for click-away-to-close
     var backdrop = document.createElement('div');
     backdrop.className = 'sacw-backdrop';
@@ -622,6 +639,7 @@
     launcher.setAttribute('aria-label', 'Chat öffnen');
     launcher.setAttribute('aria-haspopup', 'dialog');
     launcher.setAttribute('aria-expanded', 'false');
+    launcher.setAttribute('data-open', 'false');
     launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
     launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
 
@@ -726,11 +744,11 @@
     body.appendChild(iframe);
     chatbox.appendChild(body);
 
-    container.appendChild(style);
-    container.appendChild(backdrop);
-    container.appendChild(chatbox);
-    if (teaser) container.appendChild(teaser);
-    container.appendChild(launcher);
+    mount.appendChild(style);
+    mount.appendChild(backdrop);
+    mount.appendChild(chatbox);
+    if (teaser) mount.appendChild(teaser);
+    mount.appendChild(launcher);
     document.body.appendChild(container);
 
     /* ── State management ── */
@@ -765,6 +783,7 @@
 
       chatbox.setAttribute('data-open', 'true');
       launcher.setAttribute('aria-expanded', 'true');
+      launcher.setAttribute('data-open', 'true');
       backdrop.setAttribute('data-active', 'true');
 
       // Focus the close button for keyboard users
@@ -777,6 +796,7 @@
 
       chatbox.setAttribute('data-open', 'false');
       launcher.setAttribute('aria-expanded', 'false');
+      launcher.setAttribute('data-open', 'false');
       backdrop.setAttribute('data-active', 'false');
 
       launcher.focus();

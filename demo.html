@@ -56,6 +56,12 @@
       }
       .status[data-state="ok"] { background: #eefaf1; border-color: #b7e4c3; color: #1f7a3d; }
       .status[data-state="off"] { background: #fdf0ef; border-color: #f2c4c0; color: #a13a32; }
+
+      /* Simulated aggressive host-site CSS/JS interference — university themes
+         ship rules like these. The widget renders in a Shadow DOM and must be
+         completely immune (icons stay white, the X stays visible). */
+      button[type="button"] { color: #102844; }
+      svg { max-width: 100%; height: auto; }
     </style>
   </head>
   <body>
@@ -142,7 +148,7 @@
             chatbotUrl: "https://hs-heilbronn.studi-assist.de/chat",
             studyProgram: "",
             headerTitle: "StudiAssist",
-            teaserText: "",
+            teaserText: "Fragen zum Studium?",
             buttonColor: "#009fd5",
             buttonColorEnd: "#354e91",
             buttonColorEndAuto: false,
@@ -300,8 +306,13 @@
           checkAvailability(c);
 
           // Tear down the previous widget instance …
-          var wasOpen = document.querySelector('.sacw-chatbox[data-open="true"]') !== null;
-          document.querySelectorAll(".sacw-root").forEach(function (n) { n.remove(); });
+          // (the widget renders in a Shadow DOM, so query via shadowRoot)
+          var wasOpen = false;
+          document.querySelectorAll(".sacw-root").forEach(function (n) {
+            var scope = n.shadowRoot || n;
+            if (scope.querySelector('.sacw-chatbox[data-open="true"]')) wasOpen = true;
+            n.remove();
+          });
           window.__studiAssistChatbotWidgetInitialized = false;
           window.studiAssistChatbot = undefined;
           var oldScript = document.getElementById("sacw-demo-script");

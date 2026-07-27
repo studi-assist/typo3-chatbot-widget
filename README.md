@@ -32,6 +32,9 @@ used together with `enableGlobal = 1`).
 
 Invalid color values fall back to their defaults instead of breaking the widget.
 
+The widget renders inside a Shadow DOM, so the host page's CSS (theme rules for
+`button`, `svg`, …) and scripts cannot restyle or alter it.
+
 ## JavaScript API
 
 The loader exposes `window.studiAssistChatbot` with `open()`, `close()` and `toggle()`.
