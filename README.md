@@ -29,11 +29,44 @@ used together with `enableGlobal = 1`).
 | `windowBackgroundColor` | `#ffffff` | Chat window background (visible while the iframe loads) |
 | `teaserText` | empty | Optional speech bubble next to the launcher; empty = off |
 | `showHeader` | `1` | `0` hides the header bar and shows a floating close button on the window corner instead |
+| `requireConsent` | `0` | Two-click mode: `1` = no request to the chatbot server until the visitor confirms on a consent screen (see below) |
+| `consentText` | empty | German text on the consent screen; empty = default notice |
+| `consentTextEn` | empty | English text on the consent screen; empty = `consentText` if set (then the whole consent screen stays German), else default notice |
+| `privacyPolicyUrl` | empty | Optional link to the site's privacy policy, shown on the consent screen |
 
 Invalid color values fall back to their defaults instead of breaking the widget.
 
 The widget renders inside a Shadow DOM, so the host page's CSS (theme rules for
 `button`, `svg`, …) and scripts cannot restyle or alter it.
+
+## Two-click consent (`requireConsent = 1`)
+
+By default the loader calls `/api/chatbot-status` on the chatbot host at page load
+(to hide the launcher when the chatbot is unavailable) and loads the iframe on the
+first click. With `requireConsent = 1`:
+
+1. **Page load:** only the locally served loader script runs. No request goes to the
+   chatbot host or any third party. The availability check is skipped, so the launcher
+   is always shown.
+2. **First click:** the chat window opens with a local consent screen (text, optional
+   privacy-policy link, "Chat starten" button). The iframe has no `src` yet, and the
+   "open in new tab" link is hidden.
+3. **Second click ("Chat starten"):** the iframe loads. Consent is kept in
+   `sessionStorage` (per browser tab, cleared when the tab closes, written only after
+   the click), so the visitor is not asked again on every page. From then on the
+   normal availability check runs again on page load.
+
+`requireConsent`, `consentText`, `consentTextEn` and `privacyPolicyUrl` are listed in
+`ignoreFlexFormSettingsIfEmpty`: an unchecked/empty field on a plugin element falls back
+to the site-wide constant, so a plugin cannot silently switch off site-wide consent.
+
+## Language
+
+All widget texts (consent screen, button labels, screen-reader labels) are German when
+the browser's preferred language is German (`de`, `de-AT`, …) and English otherwise.
+A custom English consent text falls back to the German custom text rather than the
+generic English default, so a legally reviewed wording is never silently replaced.
+The chat itself keeps the language of the configured `chatbotUrl` (e.g. `/chat/public/de`).
 
 ## JavaScript API
 

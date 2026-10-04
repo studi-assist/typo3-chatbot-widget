@@ -1,4 +1,9 @@
 plugin.tx_studiassistchatbot_widget {
+  # Empty/unchecked consent fields in a plugin's FlexForm fall back to the
+  # site-wide constants instead of overriding them, so requireConsent = 1 set
+  # for the site cannot be switched off by a plugin element saved with "0"
+  ignoreFlexFormSettingsIfEmpty = requireConsent,consentText,consentTextEn,privacyPolicyUrl
+
   view {
     templateRootPaths.0 = EXT:studi_assist_chatbot/Resources/Private/Templates/
     partialRootPaths.0 = EXT:studi_assist_chatbot/Resources/Private/Partials/
@@ -18,6 +23,10 @@ plugin.tx_studiassistchatbot_widget {
     windowBackgroundColor = {$plugin.tx_studiassistchatbot_widget.settings.windowBackgroundColor}
     teaserText = {$plugin.tx_studiassistchatbot_widget.settings.teaserText}
     showHeader = {$plugin.tx_studiassistchatbot_widget.settings.showHeader}
+    requireConsent = {$plugin.tx_studiassistchatbot_widget.settings.requireConsent}
+    consentText = {$plugin.tx_studiassistchatbot_widget.settings.consentText}
+    consentTextEn = {$plugin.tx_studiassistchatbot_widget.settings.consentTextEn}
+    privacyPolicyUrl = {$plugin.tx_studiassistchatbot_widget.settings.privacyPolicyUrl}
   }
 }
 
@@ -30,19 +39,63 @@ plugin.tx_studiassistchatbot_widget {
     10 = TEXT
     10.value (
       <div class="studi-assist-chatbot-root"
-           data-chatbot-url="{$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}"
-           data-study-program="{$plugin.tx_studiassistchatbot_widget.settings.studyProgram}"
            data-button-color="{$plugin.tx_studiassistchatbot_widget.settings.buttonColor}"
            data-button-color-end="{$plugin.tx_studiassistchatbot_widget.settings.buttonColorEnd}"
            data-text-color="{$plugin.tx_studiassistchatbot_widget.settings.textColor}"
-           data-header-title="{$plugin.tx_studiassistchatbot_widget.settings.headerTitle}"
            data-icon-style="{$plugin.tx_studiassistchatbot_widget.settings.iconStyle}"
            data-status-dot-color="{$plugin.tx_studiassistchatbot_widget.settings.statusDotColor}"
            data-show-status-dot="{$plugin.tx_studiassistchatbot_widget.settings.showStatusDot}"
            data-window-background-color="{$plugin.tx_studiassistchatbot_widget.settings.windowBackgroundColor}"
-           data-teaser-text="{$plugin.tx_studiassistchatbot_widget.settings.teaserText}"
-           data-show-header="{$plugin.tx_studiassistchatbot_widget.settings.showHeader}">
-      </div>
+           data-show-header="{$plugin.tx_studiassistchatbot_widget.settings.showHeader}"
+           data-require-consent="{$plugin.tx_studiassistchatbot_widget.settings.requireConsent}"
     )
+
+    # Free-text settings and URLs are HTML-escaped so a quote or "<" in the
+    # value cannot break the markup. preserveEntities keeps values that already
+    # contain entities (e.g. &uuml;) rendering exactly as before
+    15 = TEXT
+    15.value = {$plugin.tx_studiassistchatbot_widget.settings.chatbotUrl}
+    15.htmlSpecialChars = 1
+    15.htmlSpecialChars.preserveEntities = 1
+    15.noTrimWrap = | data-chatbot-url="|"|
+
+    20 = TEXT
+    20.value = {$plugin.tx_studiassistchatbot_widget.settings.studyProgram}
+    20.htmlSpecialChars = 1
+    20.htmlSpecialChars.preserveEntities = 1
+    20.noTrimWrap = | data-study-program="|"|
+
+    30 = TEXT
+    30.value = {$plugin.tx_studiassistchatbot_widget.settings.headerTitle}
+    30.htmlSpecialChars = 1
+    30.htmlSpecialChars.preserveEntities = 1
+    30.noTrimWrap = | data-header-title="|"|
+
+    40 = TEXT
+    40.value = {$plugin.tx_studiassistchatbot_widget.settings.teaserText}
+    40.htmlSpecialChars = 1
+    40.htmlSpecialChars.preserveEntities = 1
+    40.noTrimWrap = | data-teaser-text="|"|
+
+    50 = TEXT
+    50.value = {$plugin.tx_studiassistchatbot_widget.settings.consentText}
+    50.htmlSpecialChars = 1
+    50.htmlSpecialChars.preserveEntities = 1
+    50.noTrimWrap = | data-consent-text="|"|
+
+    60 = TEXT
+    60.value = {$plugin.tx_studiassistchatbot_widget.settings.consentTextEn}
+    60.htmlSpecialChars = 1
+    60.htmlSpecialChars.preserveEntities = 1
+    60.noTrimWrap = | data-consent-text-en="|"|
+
+    70 = TEXT
+    70.value = {$plugin.tx_studiassistchatbot_widget.settings.privacyPolicyUrl}
+    70.htmlSpecialChars = 1
+    70.htmlSpecialChars.preserveEntities = 1
+    70.noTrimWrap = | data-privacy-policy-url="|"|
+
+    90 = TEXT
+    90.value = ></div>
   }
 [end]

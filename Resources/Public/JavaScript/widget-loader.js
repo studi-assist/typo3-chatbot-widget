@@ -1,6 +1,19 @@
 (function () {
   'use strict';
 
+  // Two-click consent is remembered in sessionStorage (per browser tab, gone
+  // when the tab closes). Only written AFTER the visitor clicks "Chat starten".
+  var CONSENT_KEY = 'studiAssistChatbotConsent';
+
+  function hasStoredConsent() {
+    try { return window.sessionStorage.getItem(CONSENT_KEY) === '1'; } catch (_) { return false; }
+  }
+
+  // True while the tenant requires consent and the visitor has not given it yet
+  function isConsentPending(root) {
+    return root.getAttribute('data-require-consent') === '1' && !hasStoredConsent();
+  }
+
   // Entry point: validate config, then gate the widget on chatbot availability.
   function init() {
     const root = document.querySelector('.studi-assist-chatbot-root');
@@ -24,6 +37,15 @@
     // can't fire a second availability fetch / build.
     if (window.__studiAssistChatbotWidgetInitialized) return;
     window.__studiAssistChatbotWidgetInitialized = true;
+
+    // Two-click consent mode: no request to the chatbot origin may happen before
+    // the visitor agrees, so skip the availability probe and always show the
+    // launcher (it is purely local markup until consent is given). Once consent
+    // is stored, the normal availability check applies again.
+    if (isConsentPending(root)) {
+      buildWidget();
+      return;
+    }
 
     // Only render the launcher if the chatbot is available (not over its monthly
     // cap and not turned off). Fails OPEN — never hides on our own error.
@@ -91,6 +113,18 @@
       return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(v) ? normalizeHex(v) : fallback;
     }
 
+    // Returns the URL if it is http(s) (absolute or relative), else ''
+    function safeHttpUrl(value) {
+      var v = (value || '').trim();
+      if (!v) return '';
+      try {
+        var u = new URL(v, document.baseURI);
+        return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : '';
+      } catch (_) {
+        return '';
+      }
+    }
+
     function hexToRgba(hex, alpha) {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
@@ -103,6 +137,15 @@
       var g = Math.max(0, parseInt(hex.slice(3, 5), 16) - amount);
       var b = Math.max(0, parseInt(hex.slice(5, 7), 16) - amount);
       return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+    }
+
+    // Relative luminance below 0.4 = dark background (needs light text)
+    function isDarkHex(hex) {
+      function lin(i) {
+        var c = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      }
+      return 0.2126 * lin(1) + 0.7152 * lin(3) + 0.0722 * lin(5) < 0.4;
     }
 
     function mixHex(a, b, t) {
@@ -127,6 +170,53 @@
     const teaserText     = (root.getAttribute('data-teaser-text') || '').trim();
     const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
     const showHeader     = root.getAttribute('data-show-header') !== '0';
+    const privacyPolicyUrl = safeHttpUrl(root.getAttribute('data-privacy-policy-url'));
+
+    /* ── UI language: German for German browsers, English for everyone else ── */
+    var browserLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'de').toLowerCase();
+    var lang = browserLang.indexOf('de') === 0 ? 'de' : 'en';
+    var STRINGS = {
+      de: {
+        open: 'Chat öffnen',
+        close: 'Chat schließen',
+        newTab: 'Chat in neuem Tab öffnen',
+        loading: 'Wird geladen…',
+        consentTitle: 'Datenschutzhinweis',
+        consentText:
+          'Der Chat wird von einem externen Dienst (StudiAssist) bereitgestellt. ' +
+          'Erst wenn Sie den Chat starten, wird eine Verbindung zu dessen Servern aufgebaut. ' +
+          'Dabei werden u. a. Ihre IP-Adresse und Ihre Chat-Eingaben übertragen.',
+        consentButton: 'Chat starten',
+        privacyPolicy: 'Datenschutzerklärung',
+      },
+      en: {
+        open: 'Open chat',
+        close: 'Close chat',
+        newTab: 'Open chat in new tab',
+        loading: 'Loading…',
+        consentTitle: 'Privacy notice',
+        consentText:
+          'This chat is provided by an external service (StudiAssist). ' +
+          'A connection to its servers is only established once you start the chat. ' +
+          'Among other things, your IP address and your chat messages are transmitted.',
+        consentButton: 'Start chat',
+        privacyPolicy: 'Privacy policy',
+      },
+    };
+    var t = STRINGS[lang];
+
+    // Tenant-provided consent texts. English visitors get the English text; if
+    // only a German custom text is set, it wins over the generic English default
+    // (a tenant's legally reviewed wording matters more than the language).
+    var consentTextDe = (root.getAttribute('data-consent-text') || '').trim();
+    var consentTextEn = (root.getAttribute('data-consent-text-en') || '').trim();
+    var consentText = lang === 'en'
+      ? (consentTextEn || consentTextDe || t.consentText)
+      : (consentTextDe || t.consentText);
+    // The consent screen follows the language of the text actually shown, so a
+    // German-only custom text is not framed by an English title and button
+    var consentLang = (lang === 'en' && !consentTextEn && consentTextDe) ? 'de' : lang;
+    var ct = STRINGS[consentLang];
 
     var iconStyle = root.getAttribute('data-icon-style') || 'chat';
 
@@ -443,6 +533,7 @@
       outline: 2px solid var(--sacw-text-70);
       outline-offset: -2px;
     }
+    .sacw-header-btn[hidden] { display: none; }
     .sacw-header-btn svg {
       width: 15px;
       height: 15px;
@@ -546,6 +637,68 @@
       letter-spacing: 0.02em;
     }
 
+    /* ── Consent screen (two-click mode) ── */
+    .sacw-consent {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      padding: 32px;
+      text-align: center;
+      background: var(--sacw-window-bg);
+      color: var(--sacw-consent-fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-y: auto;
+    }
+    .sacw-consent[hidden] { display: none; }
+    .sacw-consent-inner {
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .sacw-consent-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .sacw-consent-text {
+      margin: 0;
+      max-width: 380px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-line;
+      color: var(--sacw-consent-fg-muted);
+    }
+    .sacw-consent-link {
+      font-size: 13px;
+      color: var(--sacw-btn-end);
+      text-decoration: underline;
+    }
+    .sacw-consent-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 26px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 650;
+      cursor: pointer;
+      color: var(--sacw-text);
+      background: linear-gradient(135deg, var(--sacw-btn-start), var(--sacw-btn-end));
+      box-shadow: 0 8px 20px rgba(31, 60, 91, 0.2);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+    .sacw-consent-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(31, 60, 91, 0.26);
+    }
+    .sacw-consent-btn:focus-visible {
+      outline: 2px solid var(--sacw-btn-end);
+      outline-offset: 3px;
+    }
+
     /* ── Responsive: tablet ── */
     @media (max-width: 1200px) {
       .sacw-launcher { bottom: 24px; right: 24px; }
@@ -586,6 +739,7 @@
       .sacw-teaser,
       .sacw-close-floating,
       .sacw-header-btn,
+      .sacw-consent-btn,
       .sacw-loading {
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
@@ -614,6 +768,12 @@
     container.style.setProperty('--sacw-status-45', hexToRgba(statusDotColor, 0.45));
     container.style.setProperty('--sacw-status-0', hexToRgba(statusDotColor, 0));
     container.style.setProperty('--sacw-window-bg', windowBg);
+    if (isConsentPending(root)) {
+      // Consent text must stay readable on any configured window background
+      var darkWindow = isDarkHex(windowBg);
+      container.style.setProperty('--sacw-consent-fg', darkWindow ? '#f3f6fa' : '#102844');
+      container.style.setProperty('--sacw-consent-fg-muted', darkWindow ? '#c9d3de' : '#3d4f63');
+    }
 
     // Render inside a Shadow DOM: host-page CSS (e.g. a university theme's
     // button/svg rules) cannot restyle the widget, and host scripts that
@@ -636,7 +796,7 @@
     var launcher = document.createElement('button');
     launcher.className = 'sacw-launcher sacw-launcher--pulse';
     launcher.setAttribute('type', 'button');
-    launcher.setAttribute('aria-label', 'Chat öffnen');
+    launcher.setAttribute('aria-label', t.open);
     launcher.setAttribute('aria-haspopup', 'dialog');
     launcher.setAttribute('aria-expanded', 'false');
     launcher.setAttribute('data-open', 'false');
@@ -670,6 +830,7 @@
     chatbox.setAttribute('data-header', showHeader ? 'true' : 'false');
 
     var closeBtn;
+    var newTabBtn = null;
 
     if (showHeader) {
       // Header — single slim bar with: dot · title · [open-in-tab] · [close]
@@ -686,12 +847,12 @@
       titleEl.textContent = headerTitle;
 
       // "Open in new tab" icon button
-      var newTabBtn = document.createElement('a');
+      newTabBtn = document.createElement('a');
       newTabBtn.className = 'sacw-header-btn';
       newTabBtn.href = finalUrl;
       newTabBtn.target = '_blank';
       newTabBtn.rel = 'noopener noreferrer';
-      newTabBtn.setAttribute('aria-label', 'Chat in neuem Tab öffnen');
+      newTabBtn.setAttribute('aria-label', t.newTab);
       newTabBtn.innerHTML =
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
         ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -703,7 +864,7 @@
       closeBtn = document.createElement('button');
       closeBtn.className = 'sacw-header-btn';
       closeBtn.setAttribute('type', 'button');
-      closeBtn.setAttribute('aria-label', 'Chat schließen');
+      closeBtn.setAttribute('aria-label', t.close);
       closeBtn.innerHTML = CLOSE_X_ICON;
 
       header.appendChild(dot);
@@ -716,7 +877,7 @@
       closeBtn = document.createElement('button');
       closeBtn.className = 'sacw-close-floating';
       closeBtn.setAttribute('type', 'button');
-      closeBtn.setAttribute('aria-label', 'Chat schließen');
+      closeBtn.setAttribute('aria-label', t.close);
       closeBtn.innerHTML = CLOSE_X_ICON;
       chatbox.appendChild(closeBtn);
     }
@@ -732,7 +893,55 @@
       '<div class="sacw-loading-dots">' +
       '<span></span><span></span><span></span>' +
       '</div>' +
-      '<span class="sacw-loading-text">Wird geladen…</span>';
+      '<span class="sacw-loading-text"></span>';
+    loading.querySelector('.sacw-loading-text').textContent = t.loading;
+
+    // Two-click consent: a local screen in front of the (still src-less) iframe
+    var consentGiven = !isConsentPending(root);
+
+    var consent = null;
+    var consentBtn = null;
+    if (!consentGiven) {
+      consent = document.createElement('div');
+      consent.className = 'sacw-consent';
+      consent.setAttribute('lang', consentLang);
+      consent.hidden = true;
+
+      // Inner wrapper: margin:auto centers it but, unlike justify-content:center,
+      // keeps the top reachable when a long text overflows on small screens
+      var consentInner = document.createElement('div');
+      consentInner.className = 'sacw-consent-inner';
+
+      var consentTitle = document.createElement('p');
+      consentTitle.className = 'sacw-consent-title';
+      consentTitle.textContent = ct.consentTitle;
+
+      var consentTextEl = document.createElement('p');
+      consentTextEl.className = 'sacw-consent-text';
+      consentTextEl.textContent = consentText;
+
+      consentBtn = document.createElement('button');
+      consentBtn.className = 'sacw-consent-btn';
+      consentBtn.setAttribute('type', 'button');
+      consentBtn.textContent = ct.consentButton;
+
+      consentInner.appendChild(consentTitle);
+      consentInner.appendChild(consentTextEl);
+      if (privacyPolicyUrl) {
+        var consentLink = document.createElement('a');
+        consentLink.className = 'sacw-consent-link';
+        consentLink.href = privacyPolicyUrl;
+        consentLink.target = '_blank';
+        consentLink.rel = 'noopener';
+        consentLink.textContent = ct.privacyPolicy;
+        consentInner.appendChild(consentLink);
+      }
+      consentInner.appendChild(consentBtn);
+      consent.appendChild(consentInner);
+
+      // "Open in new tab" would bypass the consent screen — hide until agreed
+      if (newTabBtn) newTabBtn.hidden = true;
+    }
 
     var iframe = document.createElement('iframe');
     iframe.setAttribute('title', headerTitle);
@@ -741,6 +950,7 @@
     var iframeLoaded = false;
 
     body.appendChild(loading);
+    if (consent) body.appendChild(consent);
     body.appendChild(iframe);
     chatbox.appendChild(body);
 
@@ -749,6 +959,9 @@
     mount.appendChild(chatbox);
     if (teaser) mount.appendChild(teaser);
     mount.appendChild(launcher);
+    if (lang !== 'de') {
+      [chatbox, teaser, launcher].forEach(function (el) { if (el) el.setAttribute('lang', lang); });
+    }
     document.body.appendChild(container);
 
     /* ── State management ── */
@@ -767,18 +980,12 @@
 
       hideTeaser();
 
-      // Lazy-load iframe on first open
-      if (!iframeLoaded) {
-        iframeLoaded = true;
-        loading.setAttribute('data-hidden', 'false'); // ensure overlay is visible
-        iframe.addEventListener('load', function onIframeLoad() {
-          iframe.removeEventListener('load', onIframeLoad);
-          // Delay hiding so SPA (React/Vue/etc.) has time to render before we reveal it
-          setTimeout(function () {
-            loading.setAttribute('data-hidden', 'true');
-          }, 600);
-        });
-        iframe.src = finalUrl;
+      // First click in consent mode only shows the local consent screen;
+      // otherwise lazy-load the iframe on first open
+      if (consentGiven) {
+        loadIframe();
+      } else {
+        consent.hidden = false;
       }
 
       chatbox.setAttribute('data-open', 'true');
@@ -786,8 +993,34 @@
       launcher.setAttribute('data-open', 'true');
       backdrop.setAttribute('data-active', 'true');
 
-      // Focus the close button for keyboard users
-      requestAnimationFrame(function () { closeBtn.focus(); });
+      // Focus the consent button (or the close button) for keyboard users.
+      // preventScroll: a long consent text must start at the top, not at the button
+      requestAnimationFrame(function () {
+        (consentGiven ? closeBtn : consentBtn).focus({ preventScroll: true });
+      });
+    }
+
+    function loadIframe() {
+      if (iframeLoaded) return;
+      iframeLoaded = true;
+      loading.setAttribute('data-hidden', 'false'); // ensure overlay is visible
+      iframe.addEventListener('load', function onIframeLoad() {
+        iframe.removeEventListener('load', onIframeLoad);
+        // Delay hiding so SPA (React/Vue/etc.) has time to render before we reveal it
+        setTimeout(function () {
+          loading.setAttribute('data-hidden', 'true');
+        }, 600);
+      });
+      iframe.src = finalUrl;
+    }
+
+    function giveConsent() {
+      consentGiven = true;
+      try { window.sessionStorage.setItem(CONSENT_KEY, '1'); } catch (_) {}
+      consent.hidden = true;
+      if (newTabBtn) newTabBtn.hidden = false;
+      loadIframe();
+      closeBtn.focus();
     }
 
     function closeChat() {
@@ -809,6 +1042,7 @@
     /* ── Event listeners ── */
     launcher.addEventListener('click', toggleChat);
     closeBtn.addEventListener('click', closeChat);
+    if (consentBtn) consentBtn.addEventListener('click', giveConsent);
     backdrop.addEventListener('click', closeChat);
     if (teaser) {
       teaser.addEventListener('click', openChat);

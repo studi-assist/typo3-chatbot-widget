@@ -114,6 +114,12 @@
       <div class="row"><label>Online dot</label><input type="checkbox" id="showStatusDot" checked /></div>
       <div class="row"><label>Header bar</label><input type="checkbox" id="showHeader" checked /></div>
 
+      <h3>Privacy</h3>
+      <div class="row"><label>2-click consent</label><input type="checkbox" id="requireConsent" /></div>
+      <div class="row"><label>Consent text DE</label><input type="text" id="consentText" placeholder="(empty = default)" /></div>
+      <div class="row"><label>Consent text EN</label><input type="text" id="consentTextEn" placeholder="(empty = DE text / default)" /></div>
+      <div class="row"><label>Privacy URL</label><input type="text" id="privacyPolicyUrl" placeholder="(empty = no link)" /></div>
+
       <h3>TypoScript constants</h3>
       <div class="snippet">
         <textarea id="typoscript" readonly spellcheck="false"></textarea>
@@ -158,6 +164,10 @@
             iconStyle: "chat",
             showStatusDot: true,
             showHeader: true,
+            requireConsent: false,
+            consentText: "",
+            consentTextEn: "",
+            privacyPolicyUrl: "",
           },
           sa: {
             chatbotUrl: "https://website.studi-assist.de/chat/public/de",
@@ -173,6 +183,10 @@
             iconStyle: "chat",
             showStatusDot: true,
             showHeader: true,
+            requireConsent: false,
+            consentText: "",
+            consentTextEn: "",
+            privacyPolicyUrl: "",
           },
           defaults: {
             chatbotUrl: "https://website.studi-assist.de/chat/public/de",
@@ -188,6 +202,10 @@
             iconStyle: "chat",
             showStatusDot: true,
             showHeader: true,
+            requireConsent: false,
+            consentText: "",
+            consentTextEn: "",
+            privacyPolicyUrl: "",
           },
         };
 
@@ -198,6 +216,7 @@
           "buttonColor", "buttonColorEnd", "buttonColorEndAuto", "textColor",
           "statusDotColor", "windowBackgroundColor",
           "iconStyle", "showStatusDot", "showHeader",
+          "requireConsent", "consentText", "consentTextEn", "privacyPolicyUrl",
         ];
 
         function readConfig() {
@@ -214,6 +233,10 @@
             iconStyle: el("iconStyle").value,
             showStatusDot: el("showStatusDot").checked,
             showHeader: el("showHeader").checked,
+            requireConsent: el("requireConsent").checked,
+            consentText: el("consentText").value,
+            consentTextEn: el("consentTextEn").value,
+            privacyPolicyUrl: el("privacyPolicyUrl").value,
           };
         }
 
@@ -231,6 +254,10 @@
           el("iconStyle").value = c.iconStyle;
           el("showStatusDot").checked = c.showStatusDot;
           el("showHeader").checked = c.showHeader;
+          el("requireConsent").checked = c.requireConsent;
+          el("consentText").value = c.consentText;
+          el("consentTextEn").value = c.consentTextEn;
+          el("privacyPolicyUrl").value = c.privacyPolicyUrl;
         }
 
         // Same auto-derivation as the loader: gradient end = darken(start, 60)
@@ -258,6 +285,10 @@
             "  windowBackgroundColor = " + c.windowBackgroundColor,
             "  teaserText = " + c.teaserText,
             "  showHeader = " + (c.showHeader ? "1" : "0"),
+            "  requireConsent = " + (c.requireConsent ? "1" : "0"),
+            "  consentText = " + c.consentText,
+            "  consentTextEn = " + c.consentTextEn,
+            "  privacyPolicyUrl = " + c.privacyPolicyUrl,
             "}",
           ].join("\n");
         }
@@ -314,6 +345,7 @@
             n.remove();
           });
           window.__studiAssistChatbotWidgetInitialized = false;
+          try { sessionStorage.removeItem("studiAssistChatbotConsent"); } catch (_) {}
           window.studiAssistChatbot = undefined;
           var oldScript = document.getElementById("sacw-demo-script");
           if (oldScript) oldScript.remove();
@@ -331,6 +363,10 @@
           root.setAttribute("data-window-background-color", c.windowBackgroundColor);
           root.setAttribute("data-teaser-text", c.teaserText);
           root.setAttribute("data-show-header", c.showHeader ? "1" : "0");
+          root.setAttribute("data-require-consent", c.requireConsent ? "1" : "0");
+          root.setAttribute("data-consent-text", c.consentText);
+          root.setAttribute("data-consent-text-en", c.consentTextEn);
+          root.setAttribute("data-privacy-policy-url", c.privacyPolicyUrl);
 
           // … and re-run the real loader
           var s = document.createElement("script");

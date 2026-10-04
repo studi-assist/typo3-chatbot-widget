@@ -26,5 +26,13 @@ plugin.tx_studiassistchatbot_widget {
     teaserText =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Header Bar (off = floating close button instead)
     showHeader = 1
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Two-Click Consent: Load nothing external (no status check, no iframe) until the visitor clicks "Chat starten"
+    requireConsent = 0
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Consent Text German (optional, empty = default notice)
+    consentText =
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Consent Text English (optional, shown to non-German browsers; empty = German custom text if set, else default notice)
+    consentTextEn =
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Privacy Policy URL (optional, linked on the consent screen)
+    privacyPolicyUrl =
   }
 }
