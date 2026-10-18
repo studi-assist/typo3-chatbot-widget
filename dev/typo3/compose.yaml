@@ -1,0 +1,33 @@
+name: studi-assist-typo3
+
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: local-root-password
+      MARIADB_DATABASE: typo3
+      MARIADB_USER: typo3
+      MARIADB_PASSWORD: local-typo3-password
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      TYPO3_CONTEXT: Development/Docker
+    volumes:
+      - ./app:/var/www/html
+      - ../..:/var/www/html/packages/studi_assist_chatbot
+
+volumes:
+  db_data:

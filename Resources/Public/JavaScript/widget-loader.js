@@ -4,6 +4,11 @@
   // Two-click consent is remembered in sessionStorage (per browser tab, gone
   // when the tab closes). Only written AFTER the visitor clicks "Chat starten".
   var CONSENT_KEY = 'studiAssistChatbotConsent';
+  var instance;
+  // Resolve shipped image files relative to the loader, including TYPO3's
+  // hashed public asset paths. Capture currentScript before asynchronous init.
+  var iconBaseUrl = document.currentScript && document.currentScript.src
+    ? new URL('../Icons/', document.currentScript.src).href : '';
 
   function hasStoredConsent() {
     try { return window.sessionStorage.getItem(CONSENT_KEY) === '1'; } catch (_) { return false; }
@@ -23,7 +28,7 @@
     if (!chatbotUrl) return;
 
     // Parse the chatbot URL once. Its origin is the tenant-prefixed host
-    // (e.g. https://uni-mannheim.studi-assist.de), which is exactly where the
+    // (e.g. https://example-tenant.studi-assist.de), which is exactly where the
     // status endpoint lives — the backend resolves the tenant from that host.
     let parsedChatbotUrl;
     try {
@@ -37,6 +42,8 @@
     // can't fire a second availability fetch / build.
     if (window.__studiAssistChatbotWidgetInitialized) return;
     window.__studiAssistChatbotWidgetInitialized = true;
+    instance = {};
+    window.__studiAssistChatbotWidgetInstance = instance;
 
     // Two-click consent mode: no request to the chatbot origin may happen before
     // the visitor agrees, so skip the availability probe and always show the
@@ -50,7 +57,7 @@
     // Only render the launcher if the chatbot is available (not over its monthly
     // cap and not turned off). Fails OPEN — never hides on our own error.
     fetchChatbotAvailability(parsedChatbotUrl).then(function (available) {
-      if (available) buildWidget();
+      if (available && window.__studiAssistChatbotWidgetInstance === instance) buildWidget();
     });
   }
 
@@ -171,6 +178,57 @@
     const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
     const showHeader     = root.getAttribute('data-show-header') !== '0';
     const privacyPolicyUrl = safeHttpUrl(root.getAttribute('data-privacy-policy-url'));
+    var launcherIconUrl = safeHttpUrl(root.getAttribute('data-launcher-icon-url'));
+    var closeIconUrl = safeHttpUrl(root.getAttribute('data-close-icon-url'));
+    var newTabIconUrl = safeHttpUrl(root.getAttribute('data-new-tab-icon-url'));
+    // TYPO3 supplies the public resource URL so compression/concatenation of
+    // JavaScript cannot move the image base path. Plain embeds use script.src.
+    var iconResourceUrl = safeHttpUrl(root.getAttribute('data-icon-resource-url'));
+    var imageBaseUrl = iconResourceUrl ? new URL('.', iconResourceUrl).href : iconBaseUrl;
+
+    // Optional appearance settings: accept only bounded pixel values and
+    // allowlisted enums. Empty/invalid values leave the legacy CSS defaults intact.
+    function pixelValue(name, min, max) {
+      var value = (root.getAttribute('data-' + name) || '').trim();
+      if (!/^(?:\d+(?:\.\d+)?)(?:px)?$/.test(value)) return '';
+      var number = parseFloat(value);
+      return number >= min && number <= max ? number + 'px' : '';
+    }
+
+    function enumValue(name, values, fallback) {
+      var value = (root.getAttribute('data-' + name) || '').trim();
+      return values.indexOf(value) !== -1 ? value : fallback;
+    }
+
+    // Keep previously saved selection keys working after the generic rename.
+    function normalizeIconName(value) {
+      var aliases = { 'unima-01': 'external-link-double', 'unima-02': 'close-thin', 'unima-03': 'arrow-up' };
+      return Object.prototype.hasOwnProperty.call(aliases, value) ? aliases[value] : value;
+    }
+
+    function iconValue(name, values, fallback) {
+      var value = normalizeIconName((root.getAttribute('data-' + name) || '').trim());
+      return values.indexOf(value) !== -1 ? value : fallback;
+    }
+
+    var appearance = {
+      'window-width': pixelValue('window-width', 240, 2000),
+      'window-height': pixelValue('window-height', 240, 2000),
+      'border-radius': pixelValue('border-radius', 0, 100),
+      'border-width': pixelValue('border-width', 0, 12),
+      'border-color': sanitizeHex(root.getAttribute('data-border-color'), ''),
+      'border-style': enumValue('border-style', ['solid', 'dashed', 'dotted', 'double', 'none'], ''),
+      'header-height': pixelValue('header-height', 32, 160),
+      'header-font-size': pixelValue('header-font-size', 10, 32),
+      'launcher-icon-size': pixelValue('launcher-icon-size', 16, 48),
+      'header-icon-size': pixelValue('header-icon-size', 12, 32),
+      'icon-color': sanitizeHex(root.getAttribute('data-icon-color'), ''),
+    };
+    var closeIcon = iconValue('close-icon', ['x', 'minus', 'chevron-down', 'close-thin'], 'x');
+    var newTabIcon = iconValue('new-tab-icon', ['external-link', 'arrow-up-right', 'external-link-double'], 'external-link');
+    // Headerless installations historically have only a close button. Opt in
+    // to the additional floating link by explicitly selecting a new-tab icon.
+    var floatingNewTab = iconValue('new-tab-icon', ['external-link', 'arrow-up-right', 'external-link-double'], '') !== '' || !!newTabIconUrl;
 
     /* ── UI language: German for German browsers, English for everyone else ── */
     var browserLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'de').toLowerCase();
@@ -218,7 +276,12 @@
     var consentLang = (lang === 'en' && !consentTextEn && consentTextDe) ? 'de' : lang;
     var ct = STRINGS[consentLang];
 
-    var iconStyle = root.getAttribute('data-icon-style') || 'chat';
+    var iconStyle = normalizeIconName(root.getAttribute('data-icon-style') || 'chat');
+    if (imageBaseUrl) {
+      if (iconStyle === 'arrow-up' && !launcherIconUrl) launcherIconUrl = imageBaseUrl + 'arrow-up.svg';
+      if (closeIcon === 'close-thin' && !closeIconUrl) closeIconUrl = imageBaseUrl + 'close-thin.svg';
+      if (newTabIcon === 'external-link-double' && !newTabIconUrl) newTabIconUrl = imageBaseUrl + 'external-link-double.svg';
+    }
 
     // Security: only allow http(s) URLs
     try {
@@ -262,7 +325,7 @@
         '<circle cx="19" cy="26" r="2.6" fill="currentColor"/><circle cx="29" cy="26" r="2.6" fill="currentColor"/>' +
         '<path d="M6.5 24.5v4M41.5 24.5v4" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>',
     };
-    if (!ICONS[iconStyle]) iconStyle = 'chat';
+    if (!Object.prototype.hasOwnProperty.call(ICONS, iconStyle)) iconStyle = 'chat';
 
     var LAUNCHER_CLOSE_ICON =
       '<svg class="sacw-icon-close" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
@@ -274,9 +337,60 @@
       '<line x1="18" y1="6" x2="6" y2="18"/>' +
       '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
+    // Only these static SVG strings enter innerHTML; configuration is a key,
+    // never SVG markup (including inherited keys such as __proto__).
+    var SVG_START = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    var CLOSE_ICONS = {
+      x: CLOSE_X_ICON,
+      minus: SVG_START + '<path d="M6 12h12"/></svg>',
+      'chevron-down': SVG_START + '<path d="m6 9 6 6 6-6"/></svg>',
+    };
+    var NEW_TAB_ICONS = {
+      'external-link': SVG_START + '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+      'arrow-up-right': SVG_START + '<path d="M7 17 17 7M7 7h10v10"/></svg>',
+    };
+    if (closeIcon !== 'x' && CLOSE_ICONS[closeIcon]) {
+      LAUNCHER_CLOSE_ICON = CLOSE_ICONS[closeIcon].replace('<svg ', '<svg class="sacw-icon-close" ');
+    }
+
+    var pendingIconLoads = [];
+    function addIcon(parent, markup, imageUrl, className) {
+      // Only fixed internal markup is parsed. Custom files remain isolated in
+      // an img element; SVG source is never fetched and injected into the DOM.
+      var holder = document.createElement('span');
+      holder.innerHTML = markup;
+      var fallback = holder.firstElementChild;
+      parent.appendChild(fallback);
+      if (!imageUrl) return;
+
+      var img = document.createElement('img');
+      img.className = 'sacw-icon-file' + (className ? ' ' + className : '');
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      img.draggable = false;
+      img.referrerPolicy = 'no-referrer';
+      img.hidden = true;
+      img.addEventListener('load', function () {
+        fallback.style.display = 'none';
+        img.hidden = false;
+      });
+      img.addEventListener('error', function () { img.remove(); });
+      parent.appendChild(img);
+      function load() { img.src = imageUrl; }
+      // Same-site logos are local assets. Third-party images must respect the
+      // same consent gate as the chatbot; show the built-in icon until agreed.
+      if (isConsentPending(root) && new URL(imageUrl).origin !== window.location.origin) {
+        pendingIconLoads.push(load);
+      } else {
+        load();
+      }
+    }
+
     /* ── Inject styles (static — configuration flows in via CSS variables) ── */
     var style = document.createElement('style');
     style.textContent = `
+    .sacw-icon-file { object-fit: contain; }
+    .sacw-icon-file[hidden] { display: none; }
     /* ── Backdrop (click-away to close) ── */
     .sacw-backdrop {
       position: fixed;
@@ -354,11 +468,11 @@
     /* Icon transitions. Visual open/close state is keyed to data-open (our own
        attribute) — NOT aria-expanded, which host-page a11y/theme scripts are
        known to rewrite on buttons they think they manage. */
-    .sacw-launcher svg {
-      width: 42px;
-      height: 42px;
+    .sacw-launcher svg, .sacw-launcher img {
+      width: var(--sacw-launcher-icon-size, 42px);
+      height: var(--sacw-launcher-icon-size, 42px);
       display: block;
-      color: var(--sacw-text);
+      color: var(--sacw-icon-color, var(--sacw-text));
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
                   opacity 0.2s ease;
       position: absolute;
@@ -444,16 +558,21 @@
       position: fixed;
       bottom: 122px;
       right: 32px;
-      width: min(560px, calc(100vw - 64px));
-      height: min(760px, calc(100vh - 150px));
-      height: min(760px, calc(100dvh - 150px));
+      width: min(var(--sacw-window-width, 600px), calc(100vw - 64px));
+      height: min(var(--sacw-window-height, 760px), calc(100vh - 150px));
+      height: min(var(--sacw-window-height, 760px), calc(100dvh - 150px));
+      max-height: calc(100vh - 148px - 2 * var(--sacw-border-width, 1px));
+      max-height: calc(100dvh - 148px - 2 * var(--sacw-border-width, 1px));
       z-index: 9999;
       display: flex;
       flex-direction: column;
-      border-radius: 24px;
+      --sacw-radius: var(--sacw-border-radius, 24px);
+      --sacw-inner-radius: max(0px, calc(var(--sacw-radius) - var(--sacw-border-inset, 0px)));
+      border-radius: var(--sacw-radius);
+      max-width: calc(100vw - 10px - 2 * var(--sacw-border-width, 1px));
       overflow: visible;
       background: var(--sacw-window-bg);
-      border: 1px solid rgba(15, 31, 48, 0.08);
+      border: var(--sacw-border-width, 1px) var(--sacw-border-style, solid) var(--sacw-border-color, rgba(15, 31, 48, 0.08));
       box-shadow:
         0 24px 60px rgba(15, 31, 48, 0.22),
         0 8px 20px rgba(15, 31, 48, 0.12);
@@ -478,9 +597,9 @@
       align-items: center;
       gap: 8px;
       padding: 0 8px 0 16px;
-      height: 52px;
-      min-height: 52px;
-      border-radius: 24px 24px 0 0;
+      height: var(--sacw-header-height, 52px);
+      min-height: var(--sacw-header-height, 52px);
+      border-radius: var(--sacw-inner-radius) var(--sacw-inner-radius) 0 0;
       background: linear-gradient(135deg, var(--sacw-btn-start), var(--sacw-btn-end));
       color: var(--sacw-text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -497,7 +616,7 @@
     .sacw-header-dot[data-hidden="true"] { display: none; }
 
     .sacw-header-title {
-      font-size: 14px;
+      font-size: var(--sacw-header-font-size, 14px);
       font-weight: 650;
       letter-spacing: 0.02em;
       white-space: nowrap;
@@ -512,9 +631,10 @@
       appearance: none;
       border: none;
       background: transparent;
-      color: var(--sacw-text-75);
-      width: 32px;
-      height: 32px;
+      color: var(--sacw-icon-color, var(--sacw-text-75));
+      width: max(32px, calc(var(--sacw-header-icon-size, 15px) + 12px));
+      height: max(32px, calc(var(--sacw-header-icon-size, 15px) + 12px));
+      padding: 0;
       border-radius: 9px;
       cursor: pointer;
       display: inline-flex;
@@ -526,7 +646,7 @@
     }
     .sacw-header-btn:hover {
       background: var(--sacw-text-15);
-      color: var(--sacw-text);
+      color: var(--sacw-icon-color, var(--sacw-text));
     }
     .sacw-header-btn:active { opacity: 0.7; }
     .sacw-header-btn:focus-visible {
@@ -534,9 +654,9 @@
       outline-offset: -2px;
     }
     .sacw-header-btn[hidden] { display: none; }
-    .sacw-header-btn svg {
-      width: 15px;
-      height: 15px;
+    .sacw-header-btn svg, .sacw-header-btn img {
+      width: var(--sacw-header-icon-size, 15px);
+      height: var(--sacw-header-icon-size, 15px);
     }
 
     /* ── Floating close button (headerless mode) ── */
@@ -547,8 +667,10 @@
       z-index: 5;
       appearance: none;
       border: 0;
-      background: #fff;
-      color: #102844;
+      background: var(--sacw-floating-bg, #fff);
+      color: var(--sacw-floating-color, var(--sacw-icon-color, #102844));
+      padding: 0;
+      text-decoration: none;
       width: 42px;
       height: 42px;
       border-radius: 50%;
@@ -562,17 +684,20 @@
       transition: background 160ms ease, transform 160ms ease;
     }
     .sacw-close-floating:hover {
-      background: #f4f8fb;
+      background: var(--sacw-floating-hover-bg, #f4f8fb);
       transform: translateY(-1px);
     }
     .sacw-close-floating:focus-visible {
       outline: 2px solid var(--sacw-btn-end);
       outline-offset: 2px;
     }
-    .sacw-close-floating svg {
-      width: 16px;
-      height: 16px;
+    .sacw-close-floating svg, .sacw-close-floating img {
+      width: var(--sacw-header-icon-size, 16px);
+      height: var(--sacw-header-icon-size, 16px);
     }
+
+    .sacw-new-tab-floating { right: 28px; }
+    .sacw-new-tab-floating[hidden] { display: none; }
 
     /* ── Iframe body area ── */
     .sacw-body {
@@ -580,11 +705,11 @@
       min-height: 0;
       position: relative;
       overflow: hidden;
-      border-radius: 0 0 24px 24px;
+      border-radius: 0 0 var(--sacw-inner-radius) var(--sacw-inner-radius);
       background: var(--sacw-window-bg);
     }
     .sacw-chatbox[data-header="false"] .sacw-body {
-      border-radius: 24px;
+      border-radius: var(--sacw-inner-radius);
     }
     .sacw-body iframe {
       width: 100%;
@@ -706,35 +831,39 @@
       .sacw-chatbox {
         bottom: 114px;
         right: 24px;
-        width: min(500px, calc(100vw - 48px));
-        height: min(720px, calc(100vh - 144px));
-        height: min(720px, calc(100dvh - 144px));
+        width: min(var(--sacw-window-width, 500px), calc(100vw - 48px));
+        height: min(var(--sacw-window-height, 720px), calc(100vh - 144px));
+        height: min(var(--sacw-window-height, 720px), calc(100dvh - 144px));
+        max-height: calc(100vh - 142px - 2 * var(--sacw-border-width, 1px));
+        max-height: calc(100dvh - 142px - 2 * var(--sacw-border-width, 1px));
       }
     }
 
     /* ── Responsive: mobile ── */
     @media (max-width: 560px) {
       .sacw-launcher { bottom: 16px; right: 16px; width: 64px; height: 64px; }
-      .sacw-launcher svg { width: 34px; height: 34px; }
+      .sacw-launcher svg, .sacw-launcher img { width: var(--sacw-launcher-icon-size, 34px); height: var(--sacw-launcher-icon-size, 34px); }
       .sacw-teaser { right: 16px; bottom: 92px; max-width: calc(100vw - 32px); }
       .sacw-chatbox {
-        width: calc(100vw - 20px);
-        height: calc(100vh - 102px);
-        height: calc(100dvh - 102px);
+        width: min(var(--sacw-window-width, 100vw), calc(100vw - 20px));
+        height: min(var(--sacw-window-height, 100vh), calc(100vh - 102px));
+        height: min(var(--sacw-window-height, 100dvh), calc(100dvh - 102px));
         right: 10px;
         bottom: 84px;
-        border-radius: 20px;
+        --sacw-radius: var(--sacw-border-radius, 20px);
+        /* Keep thick optional borders inside short mobile viewports as well. */
+        max-height: calc(100vh - 100px - 2 * var(--sacw-border-width, 1px));
+        max-height: calc(100dvh - 100px - 2 * var(--sacw-border-width, 1px));
       }
-      .sacw-header { border-radius: 20px 20px 0 0; }
-      .sacw-body { border-radius: 0 0 20px 20px; }
-      .sacw-chatbox[data-header="false"] .sacw-body { border-radius: 20px; }
       .sacw-close-floating { top: 8px; right: 8px; width: 38px; height: 38px; }
+      .sacw-new-tab-floating { right: 54px; }
     }
 
     /* ── Reduced motion ── */
     @media (prefers-reduced-motion: reduce) {
       .sacw-launcher,
       .sacw-launcher svg,
+      .sacw-launcher img,
       .sacw-chatbox,
       .sacw-teaser,
       .sacw-close-floating,
@@ -756,6 +885,19 @@
     // also carries the CSS custom properties derived from the configuration
     var container = document.createElement('div');
     container.className = 'sacw-root';
+    Object.keys(appearance).forEach(function (name) {
+      if (appearance[name]) container.style.setProperty('--sacw-' + name, appearance[name]);
+    });
+    if (['border-radius', 'border-width', 'border-color', 'border-style'].some(function (name) { return appearance[name] !== ''; })) {
+      // Inset configured inner corners by the border thickness, while retaining
+      // the exact legacy rounding when appearance options are omitted.
+      container.style.setProperty('--sacw-border-inset', appearance['border-style'] === 'none' ? '0px' : (appearance['border-width'] || '1px'));
+    }
+    if (appearance['icon-color'] || closeIconUrl || newTabIconUrl) {
+      container.style.setProperty('--sacw-floating-bg', buttonColor);
+      container.style.setProperty('--sacw-floating-hover-bg', buttonColorEnd);
+      container.style.setProperty('--sacw-floating-color', appearance['icon-color'] || textColor);
+    }
     container.style.setProperty('--sacw-btn-start', buttonColor);
     container.style.setProperty('--sacw-btn-mid', mixHex(buttonColor, buttonColorEnd, 0.5));
     container.style.setProperty('--sacw-btn-end', buttonColorEnd);
@@ -801,7 +943,8 @@
     launcher.setAttribute('aria-expanded', 'false');
     launcher.setAttribute('data-open', 'false');
     launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
-    launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
+    addIcon(launcher, ICONS[iconStyle], launcherIconUrl, 'sacw-icon-main');
+    addIcon(launcher, LAUNCHER_CLOSE_ICON, closeIconUrl, 'sacw-icon-close');
 
     launcher.addEventListener('animationend', function () {
       launcher.classList.remove('sacw-launcher--pulse');
@@ -829,6 +972,17 @@
     chatbox.setAttribute('data-open', 'false');
     chatbox.setAttribute('data-header', showHeader ? 'true' : 'false');
 
+    function createNewTabButton(className) {
+      var link = document.createElement('a');
+      link.className = className;
+      link.href = finalUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.setAttribute('aria-label', t.newTab);
+      addIcon(link, NEW_TAB_ICONS[newTabIcon] || NEW_TAB_ICONS['external-link'], newTabIconUrl);
+      return link;
+    }
+
     var closeBtn;
     var newTabBtn = null;
 
@@ -846,26 +1000,14 @@
       titleEl.className = 'sacw-header-title';
       titleEl.textContent = headerTitle;
 
-      // "Open in new tab" icon button
-      newTabBtn = document.createElement('a');
-      newTabBtn.className = 'sacw-header-btn';
-      newTabBtn.href = finalUrl;
-      newTabBtn.target = '_blank';
-      newTabBtn.rel = 'noopener noreferrer';
-      newTabBtn.setAttribute('aria-label', t.newTab);
-      newTabBtn.innerHTML =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
-        '<polyline points="15 3 21 3 21 9"/>' +
-        '<line x1="10" y1="14" x2="21" y2="3"/></svg>';
+      newTabBtn = createNewTabButton('sacw-header-btn');
 
       // Close button
       closeBtn = document.createElement('button');
       closeBtn.className = 'sacw-header-btn';
       closeBtn.setAttribute('type', 'button');
       closeBtn.setAttribute('aria-label', t.close);
-      closeBtn.innerHTML = CLOSE_X_ICON;
+      addIcon(closeBtn, CLOSE_ICONS[closeIcon] || CLOSE_X_ICON, closeIconUrl);
 
       header.appendChild(dot);
       header.appendChild(titleEl);
@@ -878,8 +1020,12 @@
       closeBtn.className = 'sacw-close-floating';
       closeBtn.setAttribute('type', 'button');
       closeBtn.setAttribute('aria-label', t.close);
-      closeBtn.innerHTML = CLOSE_X_ICON;
+      addIcon(closeBtn, CLOSE_ICONS[closeIcon] || CLOSE_X_ICON, closeIconUrl);
       chatbox.appendChild(closeBtn);
+      if (floatingNewTab) {
+        newTabBtn = createNewTabButton('sacw-close-floating sacw-new-tab-floating');
+        chatbox.appendChild(newTabBtn);
+      }
     }
 
     // Body with loading spinner + iframe
@@ -1017,6 +1163,8 @@
     function giveConsent() {
       consentGiven = true;
       try { window.sessionStorage.setItem(CONSENT_KEY, '1'); } catch (_) {}
+      pendingIconLoads.forEach(function (load) { load(); });
+      pendingIconLoads = [];
       consent.hidden = true;
       if (newTabBtn) newTabBtn.hidden = false;
       loadIframe();
@@ -1044,10 +1192,11 @@
     closeBtn.addEventListener('click', closeChat);
     if (consentBtn) consentBtn.addEventListener('click', giveConsent);
     backdrop.addEventListener('click', closeChat);
+    var teaserTimer;
     if (teaser) {
       teaser.addEventListener('click', openChat);
       // Slide the teaser in shortly after page load
-      setTimeout(function () {
+      teaserTimer = setTimeout(function () {
         if (teaserDismissed) return;
         teaser.style.display = 'block';
         requestAnimationFrame(function () {
@@ -1056,15 +1205,28 @@
       }, 900);
     }
 
-    document.addEventListener('keydown', function (e) {
+    function onKeydown(e) {
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault();
         closeChat();
       }
-    });
+    }
+    document.addEventListener('keydown', onKeydown);
+
+    function destroy() {
+      pendingIconLoads = [];
+      clearTimeout(teaserTimer);
+      document.removeEventListener('keydown', onKeydown);
+      container.remove();
+      if (window.__studiAssistChatbotWidgetInstance === instance) {
+        window.__studiAssistChatbotWidgetInstance = null;
+        window.__studiAssistChatbotWidgetInitialized = false;
+        window.studiAssistChatbot = undefined;
+      }
+    }
 
     // Expose API for external use
-    window.studiAssistChatbot = { open: openChat, close: closeChat, toggle: toggleChat };
+    window.studiAssistChatbot = { open: openChat, close: closeChat, toggle: toggleChat, destroy: destroy };
   }
 
   if (document.readyState === 'loading') {
