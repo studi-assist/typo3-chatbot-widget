@@ -193,7 +193,7 @@ plugin.tx_studiassistchatbot_widget {
 
     # Resolve the public asset path independently of JavaScript compression.
     116 = TEXT
-    116.data = path:EXT:studi_assist_chatbot/Resources/Public/Icons/unima-Studiassist-03.svg
+    116.data = path:EXT:studi_assist_chatbot/Resources/Public/Icons/arrow-up.svg
     116.htmlSpecialChars = 1
     116.noTrimWrap = | data-icon-resource-url="|"|
 

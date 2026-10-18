@@ -109,17 +109,18 @@ const pass = message => console.log(`PASS: ${message}`);
 try {
   await command('Runtime.enable');
   await command('Page.enable');
-  // Exact computed visual defaults against the original shipped loader.
+  // Compare all legacy visual defaults, allowing only the requested desktop width change.
   for (const [width,height] of [[1440,1100],[1024,1000],[390,844]]) {
     for (const showHeader of ['1','0']) {
       await viewport(width,height);
-      await mount({ showHeader }, baseline);
+      const expectedLoader = baseline.replace('width: min(560px,', 'width: min(600px,');
+      await mount({ showHeader }, expectedLoader);
       const expected = await metrics();
       await mount({ showHeader });
       assert.deepEqual(await metrics(), expected, `Legacy rendering at ${width}px, header ${showHeader}`);
     }
   }
-  pass('legacy desktop/tablet/mobile rendering, including headerless mode, unchanged');
+  pass('600px desktop default; other legacy desktop/tablet/mobile styles and headerless mode preserved');
 
   await viewport(1600,1200);
   const custom = { windowWidth:'800px', windowHeight:'900px', borderRadius:'16px', borderColor:'#003865', borderWidth:'2px', borderStyle:'dashed', headerHeight:'72px', headerFontSize:'18px', iconColor:'#ffcc00', launcherIconSize:'42px', headerIconSize:'24px' };
@@ -173,14 +174,14 @@ try {
     await mount({iconStyle});
     assert.ok(await evaluate(`${scope}.querySelector('.sacw-icon-main').children.length > 0`));
   }
-  const iconFile = n => new URL(`Resources/Public/Icons/unima-Studiassist-${n}.svg`,baseURL).href;
+  const iconFile = name => new URL(`Resources/Public/Icons/${name}.svg`,baseURL).href;
   for (const showHeader of ['1','0']) {
     for (const width of [390,1440]) {
       await viewport(width,1100);
-      await mount({iconStyle:'unima-03',closeIcon:'unima-02',newTabIcon:'unima-01',showHeader,launcherIconSize:'40px',headerIconSize:'24px'});
+      await mount({iconStyle:'arrow-up',closeIcon:'close-thin',newTabIcon:'external-link-double',showHeader,launcherIconSize:'40px',headerIconSize:'24px'});
       await until(`Array.from(${scope}.querySelectorAll('img')).length === 4 && Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0 && !img.hidden)`);
       const images = await evaluate(`Array.from(${scope}.querySelectorAll('img')).map(img => ({src:img.src,width:getComputedStyle(img).width,alt:img.alt,referrerPolicy:img.referrerPolicy,fit:getComputedStyle(img).objectFit}))`);
-      assert.deepEqual(images.map(img=>img.src).sort(),[iconFile('01'),iconFile('02'),iconFile('02'),iconFile('03')].sort());
+      assert.deepEqual(images.map(img=>img.src).sort(),[iconFile('external-link-double'),iconFile('close-thin'),iconFile('close-thin'),iconFile('arrow-up')].sort());
       for (const img of images) { assert.equal(img.alt,''); assert.equal(img.referrerPolicy,'no-referrer'); assert.equal(img.fit,'contain'); }
       assert.equal(await evaluate(`getComputedStyle(${scope}.querySelector('.sacw-launcher img')).width`),'40px');
       assert.equal(await evaluate(`getComputedStyle(${scope}.querySelector('a img')).width`),'24px');
@@ -191,13 +192,18 @@ try {
   await viewport(1440,1100);
   // TYPO3's explicit resource URL must work when no original script URL exists
   // (for example when the loader is concatenated into a generated script).
-  await mount({iconStyle:'unima-03',closeIcon:'unima-02',newTabIcon:'unima-01',iconResourceUrl:iconFile('03')}, loader + '\n// simulated merged loader');
+  await mount({iconStyle:'arrow-up',closeIcon:'close-thin',newTabIcon:'external-link-double',iconResourceUrl:iconFile('arrow-up')}, loader + '\n// simulated merged loader');
   await until(`Array.from(${scope}.querySelectorAll('img')).length === 4 && Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0)`);
-  await mount({launcherIconUrl:iconFile('01'),closeIconUrl:iconFile('03'),newTabIconUrl:iconFile('02'),showHeader:'0'});
+  await mount({iconStyle:'unima-03',closeIcon:'unima-02',newTabIcon:'unima-01',showHeader:'0'});
   await until(`Array.from(${scope}.querySelectorAll('img')).length === 4 && Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0)`);
-  assert.equal(await evaluate(`${scope}.querySelector('.sacw-launcher img.sacw-icon-main').src`),iconFile('01'));
-  assert.equal(await evaluate(`${scope}.querySelector('a img').src`),iconFile('02'));
-  assert.equal(await evaluate(`${scope}.querySelector('button.sacw-close-floating img').src`),iconFile('03'));
+  assert.equal(await evaluate(`${scope}.querySelector('.sacw-launcher img.sacw-icon-main').src`),iconFile('arrow-up'));
+  assert.equal(await evaluate(`${scope}.querySelector('a img').src`),iconFile('external-link-double'));
+  assert.equal(await evaluate(`${scope}.querySelector('button.sacw-close-floating img').src`),iconFile('close-thin'));
+  await mount({launcherIconUrl:iconFile('external-link-double'),closeIconUrl:iconFile('arrow-up'),newTabIconUrl:iconFile('close-thin'),showHeader:'0'});
+  await until(`Array.from(${scope}.querySelectorAll('img')).length === 4 && Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0)`);
+  assert.equal(await evaluate(`${scope}.querySelector('.sacw-launcher img.sacw-icon-main').src`),iconFile('external-link-double'));
+  assert.equal(await evaluate(`${scope}.querySelector('a img').src`),iconFile('close-thin'));
+  assert.equal(await evaluate(`${scope}.querySelector('button.sacw-close-floating img').src`),iconFile('arrow-up'));
   // Non-image, missing and forbidden URLs must retain the built-in icon.
   await mount({launcherIconUrl:new URL('missing-icon.svg',baseURL).href,closeIconUrl:'javascript:alert(1)',newTabIconUrl:'data:image/svg+xml,<svg onload="alert(1)"/>'});
   await until(`${scope}.querySelectorAll('img').length === 0`);
@@ -209,12 +215,12 @@ try {
   // Cross-origin image files obey consent, even before the chat is opened.
   const externalIcons = ['launcherIconUrl','closeIconUrl','newTabIconUrl'];
   await evaluate('sessionStorage.removeItem("studiAssistChatbotConsent")');
-  await mount(Object.fromEntries([['requireConsent','1'],...externalIcons.map(name=>[name,'http://127.0.0.1:' + new URL(baseURL).port + '/Resources/Public/Icons/unima-Studiassist-03.svg'])]));
+  await mount(Object.fromEntries([['requireConsent','1'],...externalIcons.map(name=>[name,'http://127.0.0.1:' + new URL(baseURL).port + '/Resources/Public/Icons/arrow-up.svg'])]));
   assert.equal(await evaluate(`Array.from(${scope}.querySelectorAll('img')).every(img => !img.hasAttribute('src'))`),true);
   await evaluate(`${scope}.querySelector('.sacw-consent-btn').click()`);
   await until(`Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0)`);
   assert.equal(await evaluate(`Array.from(${scope}.querySelectorAll('img')).every(img => img.hasAttribute('src'))`),true);
-  pass('all three Mannheim files and custom image URLs, mobile/headerless controls, failure fallbacks and external-image consent');
+  pass('all three generic icon files and custom image URLs, mobile/headerless controls, failure fallbacks and external-image consent');
   await evaluate('sessionStorage.removeItem("studiAssistChatbotConsent")');
 
   for (const width of [320,390,560,561,1024,1440]) {
@@ -240,7 +246,7 @@ try {
   for (const name of ['hhn','sa','defaults']) {
     await preset(name);
     const m=await metrics();
-    assert.equal(m['.sacw-chatbox'].width,'560px');
+    assert.equal(m['.sacw-chatbox'].width,'600px');
     assert.equal(m['.sacw-header'].height,'52px');
     assert.equal(await evaluate(`document.getElementById('windowWidth').value`),'');
   }
@@ -253,15 +259,15 @@ try {
   assert.equal(await evaluate(`${scope}.querySelector('.sacw-header-title').textContent`),'Deine KI-Studienberatung');
   assert.equal(await evaluate(`${scope}.querySelector('.sacw-launcher').dataset.status`),'off');
   const output=await evaluate(`document.getElementById('typoscript').value`);
-  for (const [name,value] of Object.entries({...custom,borderStyle:'solid',iconColor:'#ffffff',closeIcon:'unima-02',newTabIcon:'unima-01'})) assert.ok(output.includes(`  ${name} = ${value}`),name);
+  for (const [name,value] of Object.entries({...custom,borderStyle:'solid',iconColor:'#ffffff',closeIcon:'close-thin',newTabIcon:'external-link-double'})) assert.ok(output.includes(`  ${name} = ${value}`),name);
   assert.ok(!output.includes('mock-chat.html'));
-  assert.ok(output.includes('  iconStyle = unima-03'));
-  await change({launcherIconUrl:iconFile('01'),closeIconUrl:iconFile('03'),newTabIconUrl:iconFile('02')});
+  assert.ok(output.includes('  iconStyle = arrow-up'));
+  await change({launcherIconUrl:iconFile('external-link-double'),closeIconUrl:iconFile('arrow-up'),newTabIconUrl:iconFile('close-thin')});
   await until(`Array.from(${scope}.querySelectorAll('img')).every(img => img.complete && img.naturalWidth > 0)`);
   const imageOutput = await evaluate(`document.getElementById('typoscript').value`);
-  assert.ok(imageOutput.includes('  launcherIconUrl = ' + iconFile('01')));
-  assert.ok(imageOutput.includes('  closeIconUrl = ' + iconFile('03')));
-  assert.ok(imageOutput.includes('  newTabIconUrl = ' + iconFile('02')));
+  assert.ok(imageOutput.includes('  launcherIconUrl = ' + iconFile('external-link-double')));
+  assert.ok(imageOutput.includes('  closeIconUrl = ' + iconFile('arrow-up')));
+  assert.ok(imageOutput.includes('  newTabIconUrl = ' + iconFile('close-thin')));
   await change({launcherIconUrl:'',closeIconUrl:'',newTabIconUrl:''});
   await evaluate('window.studiAssistChatbot.open()');
   await change({ windowWidth:'700px',windowHeight:'800px',borderRadius:'8px',borderColor:'#ff0000',borderWidth:'4px',borderStyle:'dotted',headerHeight:'64px',headerFontSize:'20px',iconColor:'#00ff00',closeIcon:'minus',newTabIcon:'arrow-up-right',launcherIconSize:'40px',headerIconSize:'20px' });

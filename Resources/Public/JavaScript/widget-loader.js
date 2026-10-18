@@ -200,6 +200,17 @@
       return values.indexOf(value) !== -1 ? value : fallback;
     }
 
+    // Keep previously saved selection keys working after the generic rename.
+    function normalizeIconName(value) {
+      var aliases = { 'unima-01': 'external-link-double', 'unima-02': 'close-thin', 'unima-03': 'arrow-up' };
+      return Object.prototype.hasOwnProperty.call(aliases, value) ? aliases[value] : value;
+    }
+
+    function iconValue(name, values, fallback) {
+      var value = normalizeIconName((root.getAttribute('data-' + name) || '').trim());
+      return values.indexOf(value) !== -1 ? value : fallback;
+    }
+
     var appearance = {
       'window-width': pixelValue('window-width', 240, 2000),
       'window-height': pixelValue('window-height', 240, 2000),
@@ -213,11 +224,11 @@
       'header-icon-size': pixelValue('header-icon-size', 12, 32),
       'icon-color': sanitizeHex(root.getAttribute('data-icon-color'), ''),
     };
-    var closeIcon = enumValue('close-icon', ['x', 'minus', 'chevron-down', 'unima-02'], 'x');
-    var newTabIcon = enumValue('new-tab-icon', ['external-link', 'arrow-up-right', 'unima-01'], 'external-link');
+    var closeIcon = iconValue('close-icon', ['x', 'minus', 'chevron-down', 'close-thin'], 'x');
+    var newTabIcon = iconValue('new-tab-icon', ['external-link', 'arrow-up-right', 'external-link-double'], 'external-link');
     // Headerless installations historically have only a close button. Opt in
     // to the additional floating link by explicitly selecting a new-tab icon.
-    var floatingNewTab = enumValue('new-tab-icon', ['external-link', 'arrow-up-right', 'unima-01'], '') !== '' || !!newTabIconUrl;
+    var floatingNewTab = iconValue('new-tab-icon', ['external-link', 'arrow-up-right', 'external-link-double'], '') !== '' || !!newTabIconUrl;
 
     /* ── UI language: German for German browsers, English for everyone else ── */
     var browserLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'de').toLowerCase();
@@ -265,11 +276,11 @@
     var consentLang = (lang === 'en' && !consentTextEn && consentTextDe) ? 'de' : lang;
     var ct = STRINGS[consentLang];
 
-    var iconStyle = root.getAttribute('data-icon-style') || 'chat';
+    var iconStyle = normalizeIconName(root.getAttribute('data-icon-style') || 'chat');
     if (imageBaseUrl) {
-      if (iconStyle === 'unima-03' && !launcherIconUrl) launcherIconUrl = imageBaseUrl + 'unima-Studiassist-03.svg';
-      if (closeIcon === 'unima-02' && !closeIconUrl) closeIconUrl = imageBaseUrl + 'unima-Studiassist-02.svg';
-      if (newTabIcon === 'unima-01' && !newTabIconUrl) newTabIconUrl = imageBaseUrl + 'unima-Studiassist-01.svg';
+      if (iconStyle === 'arrow-up' && !launcherIconUrl) launcherIconUrl = imageBaseUrl + 'arrow-up.svg';
+      if (closeIcon === 'close-thin' && !closeIconUrl) closeIconUrl = imageBaseUrl + 'close-thin.svg';
+      if (newTabIcon === 'external-link-double' && !newTabIconUrl) newTabIconUrl = imageBaseUrl + 'external-link-double.svg';
     }
 
     // Security: only allow http(s) URLs
@@ -547,7 +558,7 @@
       position: fixed;
       bottom: 122px;
       right: 32px;
-      width: min(var(--sacw-window-width, 560px), calc(100vw - 64px));
+      width: min(var(--sacw-window-width, 600px), calc(100vw - 64px));
       height: min(var(--sacw-window-height, 760px), calc(100vh - 150px));
       height: min(var(--sacw-window-height, 760px), calc(100dvh - 150px));
       max-height: calc(100vh - 148px - 2 * var(--sacw-border-width, 1px));

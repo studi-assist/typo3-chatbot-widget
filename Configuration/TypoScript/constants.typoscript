@@ -14,7 +14,7 @@ plugin.tx_studiassistchatbot_widget {
     textColor = #ffffff
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Header Title
     headerTitle = StudiAssist
-    # cat=plugin.tx_studiassistchatbot_widget/settings; type=options[Chat bubble=chat,Sparkle (AI)=sparkle,Graduation cap=cap,Robot=robot,Uni Mannheim 03=unima-03]; label=Launcher Icon
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=options[Chat bubble=chat,Sparkle (AI)=sparkle,Graduation cap=cap,Robot=robot,Arrow up=arrow-up]; label=Launcher Icon
     iconStyle = chat
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Online Status Dot
     showStatusDot = 1
@@ -26,7 +26,7 @@ plugin.tx_studiassistchatbot_widget {
     teaserText =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Header Bar (off = floating close button instead)
     showHeader = 1
-    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window width (240–2000px, empty = responsive default)
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window width (240–2000px, empty = 600px desktop / 500px tablet)
     windowWidth =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window height (240–2000px, empty = responsive default)
     windowHeight =
@@ -44,9 +44,9 @@ plugin.tx_studiassistchatbot_widget {
     headerFontSize =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Icon color (hex, empty = existing colors)
     iconColor =
-    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,x,minus,chevron-down,Uni Mannheim 02=unima-02]; label=Close icon (empty = x)
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,x,minus,chevron-down,Thin X=close-thin]; label=Close icon (empty = x)
     closeIcon =
-    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,external-link,arrow-up-right,Uni Mannheim 01=unima-01]; label=New-tab icon (empty = external-link in header, no link without header)
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,external-link,arrow-up-right,External link (double)=external-link-double]; label=New-tab icon (empty = external-link in header, no link without header)
     newTabIcon =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Launcher icon size (16–48px, empty = 42px desktop / 34px mobile)
     launcherIconSize =

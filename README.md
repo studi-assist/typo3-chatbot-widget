@@ -35,13 +35,13 @@ used together with `enableGlobal = 1`).
 | `buttonColorEnd` | empty | Launcher gradient end; empty = automatically derived (darkened) from `buttonColor` |
 | `textColor` | `#ffffff` | Icon & header text color |
 | `headerTitle` | `StudiAssist` | Title in the chat window header (also used as accessible label) |
-| `iconStyle` | `chat` | Launcher icon: `chat`, `sparkle`, `cap`, `robot` or `unima-03` (Mannheim image file) |
+| `iconStyle` | `chat` | Launcher icon: `chat`, `sparkle`, `cap`, `robot` or `arrow-up` (image file) |
 | `showStatusDot` | `1` | Pulsing "online" dot on the launcher (and in the header) |
 | `statusDotColor` | `#34c759` | Color of the status dot |
 | `windowBackgroundColor` | `#ffffff` | Chat window background (visible while the iframe loads) |
 | `teaserText` | empty | Optional speech bubble next to the launcher; empty = off |
 | `showHeader` | `1` | `0` hides the header bar and shows a floating close button on the window corner instead |
-| `windowWidth` | empty → `560px` desktop / `500px` tablet / responsive mobile | Window content width; 240–2000px, capped to the viewport |
+| `windowWidth` | empty → `600px` desktop / `500px` tablet / responsive mobile | Window content width; 240–2000px, capped to the viewport |
 | `windowHeight` | empty → `760px` desktop / `720px` tablet / responsive mobile | Window content height; 240–2000px, capped to available viewport height |
 | `borderRadius` | empty → `24px` desktop/tablet / `20px` mobile | Radius on window, header and iframe body; 0–100px |
 | `borderColor` | empty → `rgba(15, 31, 48, 0.08)` | Border color as 3- or 6-digit hex |
@@ -50,8 +50,8 @@ used together with `enableGlobal = 1`).
 | `headerHeight` | empty → `52px` | Header height; 32–160px |
 | `headerFontSize` | empty → `14px` | Header title size; 10–32px |
 | `iconColor` | empty → existing colors | Hex color for launcher, close and new-tab icons; header title still uses `textColor` |
-| `closeIcon` | empty → `x` | `x`, `minus`, `chevron-down`, `unima-02` (Mannheim image file); also applies to launcher close state |
-| `newTabIcon` | empty → `external-link` in header | `external-link`, `arrow-up-right`, `unima-01` (Mannheim image file); an explicit selection also enables a floating new-tab link in headerless mode |
+| `closeIcon` | empty → `x` | `x`, `minus`, `chevron-down`, `close-thin` (image file); also applies to launcher close state |
+| `newTabIcon` | empty → `external-link` in header | `external-link`, `arrow-up-right`, `external-link-double` (image file); an explicit selection also enables a floating new-tab link in headerless mode |
 | `launcherIconSize` | empty → `42px` desktop/tablet / `34px` mobile | Launcher SVG size; 16–48px |
 | `headerIconSize` | empty → `15px` header / `16px` floating | Close/new-tab SVG size; 12–32px |
 | `launcherIconUrl` | empty | Own logo/icon image URL; overrides `iconStyle` |
@@ -66,8 +66,9 @@ New appearance settings are optional and default to empty in Constants and FlexF
 An empty FlexForm appearance field inherits the site-wide TypoScript value.
 The controller resolves these strictly empty fields on TYPO3 11–13, preserving
 explicit `0` overrides for square corners and a borderless window.
-With no appearance overrides, all existing breakpoint sizes, radii, icon colors and
-headerless controls stay as before. Configured sizes apply at every breakpoint and
+With no appearance overrides, the desktop window is now 600px wide. Tablet width
+remains 500px and mobile sizing stays responsive; the existing heights, radii, icon
+colors and headerless controls stay as before. Configured sizes apply at every breakpoint and
 are capped to the available viewport; the launcher and window offsets remain responsive.
 Desktop is above 1200px, tablet is 561–1200px, mobile is at most 560px.
 Window dimensions retain the existing content-box sizing (borders add to the requested size).
@@ -114,15 +115,17 @@ An image URL for the new-tab button enables that button in headerless mode and
 respects the existing consent gate. With two-click consent, third-party icon images
 are deferred until consent; files hosted on the university's own origin can load immediately.
 
-The three provided Mannheim SVGs are shipped unchanged in `Resources/Public/Icons/`:
+The three provided SVGs are shipped unchanged in `Resources/Public/Icons/`:
 
 | Selection | File | Used for |
 | --- | --- | --- |
-| `iconStyle = unima-03` | `unima-Studiassist-03.svg` | Launcher arrow |
-| `closeIcon = unima-02` | `unima-Studiassist-02.svg` | Close button |
-| `newTabIcon = unima-01` | `unima-Studiassist-01.svg` | Open in new tab |
+| `iconStyle = arrow-up` | `arrow-up.svg` | Launcher arrow |
+| `closeIcon = close-thin` | `close-thin.svg` | Close button |
+| `newTabIcon = external-link-double` | `external-link-double.svg` | Open in new tab |
 
-Select them in the backend or playground. TYPO3 resolves the public resource path,
+Select them in the backend or playground. Previously saved `unima-01`, `unima-02`
+and `unima-03` selection keys remain supported as aliases for `external-link-double`,
+`close-thin` and `arrow-up`, respectively. TYPO3 resolves the public resource path,
 including hashed asset paths, independently of JavaScript compression. Plain embeds
 and the playground resolve image URLs relative to the shipped loader. The **Uni Mannheim**
 preset selects all three; switching back to an existing preset restores its built-in icons.
@@ -152,9 +155,9 @@ plugin.tx_studiassistchatbot_widget.settings {
   iconColor = #ffffff
   launcherIconSize = 42px
   headerIconSize = 24px
-  iconStyle = unima-03
-  closeIcon = unima-02
-  newTabIcon = unima-01
+  iconStyle = arrow-up
+  closeIcon = close-thin
+  newTabIcon = external-link-double
   showHeader = 1
   showStatusDot = 0
 }
@@ -177,9 +180,10 @@ profile and run the suite (adjust the Chrome path for your OS):
 node tests/browser.mjs
 ```
 
-The suite checks legacy rendering against the pre-change loader, desktop/tablet/mobile
+The suite checks legacy rendering against the pre-change loader (except the requested
+600px desktop width), desktop/tablet/mobile
 sizes, all appearance controls, safe fallbacks, icons with/without a header, consent,
-presets, own image URLs, Mannheim SVG files, image-error fallbacks, external-image
+presets, own image URLs, shipped SVG files, image-error fallbacks, external-image
 consent, the generated TypoScript and rapid preview rebuilds. It needs the baseline
 Git revision (defaults to `53c8f5f`, override with `BASELINE_REF`) to compare legacy defaults.
 Set `DEMO_URL` and `CDP_URL` for non-default server/debug ports.

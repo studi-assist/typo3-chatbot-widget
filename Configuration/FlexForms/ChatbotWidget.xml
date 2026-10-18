@@ -87,8 +87,8 @@
                   <numIndex index="1">robot</numIndex>
                 </numIndex>
                 <numIndex index="4">
-                  <numIndex index="0">Uni Mannheim 03 (arrow)</numIndex>
-                  <numIndex index="1">unima-03</numIndex>
+                  <numIndex index="0">Arrow up</numIndex>
+                  <numIndex index="1">arrow-up</numIndex>
                 </numIndex>
               </items>
               <default>chat</default>
@@ -138,7 +138,7 @@
             </config>
           </settings.showHeader>
           <settings.windowWidth>
-            <label>Window width (240–2000px; empty = responsive default) – empty = site-wide setting / default</label>
+            <label>Window width (240–2000px; default = 600px desktop / 500px tablet) – empty = site-wide setting / default</label>
             <config>
               <type>input</type>
               <size>20</size>
@@ -258,8 +258,8 @@
                   <numIndex index="1">chevron-down</numIndex>
                 </numIndex>
                 <numIndex index="4">
-                  <numIndex index="0">Uni Mannheim 02 (close)</numIndex>
-                  <numIndex index="1">unima-02</numIndex>
+                  <numIndex index="0">Thin X</numIndex>
+                  <numIndex index="1">close-thin</numIndex>
                 </numIndex>
               </items>
               <default></default>
@@ -284,8 +284,8 @@
                   <numIndex index="1">arrow-up-right</numIndex>
                 </numIndex>
                 <numIndex index="3">
-                  <numIndex index="0">Uni Mannheim 01 (new tab)</numIndex>
-                  <numIndex index="1">unima-01</numIndex>
+                  <numIndex index="0">External link (double)</numIndex>
+                  <numIndex index="1">external-link-double</numIndex>
                 </numIndex>
               </items>
               <default></default>

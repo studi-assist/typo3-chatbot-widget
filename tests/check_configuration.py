@@ -34,12 +34,12 @@ for name in FIELDS:
 
 assert "($this->settings[$name] ?? '') === ''" in controller
 assert "$this->view->assign('settings', $this->settings)" in controller
-assert "data-icon-resource-url=\"{f:uri.resource(path: 'Icons/unima-Studiassist-03.svg')}\"" in fluid
-assert '116.data = path:EXT:studi_assist_chatbot/Resources/Public/Icons/unima-Studiassist-03.svg' in setup
+assert "data-icon-resource-url=\"{f:uri.resource(path: 'Icons/arrow-up.svg')}\"" in fluid
+assert '116.data = path:EXT:studi_assist_chatbot/Resources/Public/Icons/arrow-up.svg' in setup
 assert '116.htmlSpecialChars = 1' in setup
 
 # Shipped SVGs stay as image files, never executable inline markup.
-for name in ['unima-Studiassist-01.svg', 'unima-Studiassist-02.svg', 'unima-Studiassist-03.svg']:
+for name in ['external-link-double.svg', 'close-thin.svg', 'arrow-up.svg']:
     svg = ET.parse(BASE / 'Resources/Public/Icons' / name)
     assert svg.getroot().attrib['viewBox'] == '0 0 64 64'
     assert all(node.tag.rsplit('}', 1)[-1] not in ['script', 'foreignObject', 'image'] for node in svg.iter())
