@@ -18,10 +18,10 @@ The exported TypoScript always uses the configured chat URL, never the mock URL.
 You can also open [`demo.html`](demo.html) directly with the placeholder disabled
 (the local placeholder uses an HTTP URL and needs the demo server).
 It loads the real shipped loader (`Resources/Public/JavaScript/widget-loader.js`) and lets you
-try every tenant-configurable setting live. Its neutral **Standard**, **Ocean**,
-**Minimal** and **Contrast** presets demonstrate different colors, sizes and icons.
-The demo starts with **Standard** (600px desktop width) and uses the same public demo
-chat URL for every preset. The panel generates matching TypoScript constants for copying.
+try every tenant-configurable setting live. It includes only **StudiAssist** and
+**Default** presets. StudiAssist uses its blue gradient; Default restores the
+extension defaults. The demo starts with **Default** (600px desktop width) and uses
+the same public demo chat URL for both presets. The panel generates matching TypoScript constants for copying.
 Institution-specific branding belongs in your own TYPO3 configuration: colors,
 titles, dimensions and image URLs can all be changed without modifying the extension.
 
@@ -130,13 +130,13 @@ The three provided SVGs are shipped unchanged in `Resources/Public/Icons/`:
 Select them in the backend or playground. Previously saved icon selection keys
 remain supported as compatibility aliases. TYPO3 resolves the public resource path,
 including hashed asset paths, independently of JavaScript compression. Plain embeds
-and the playground resolve image URLs relative to the shipped loader. The neutral
-**Contrast** preset selects all three; switching back to **Standard** restores its built-in icons.
+and the playground resolve image URLs relative to the shipped loader. Select any
+combination manually; switching to **Default** restores the built-in icons.
 
 ## Custom design example
 
 The extension contains no institution-specific presets or defaults. The following
-example uses the neutral **Contrast** design. Adapt its colors, title, dimensions,
+example demonstrates a custom configuration. Adapt its colors, title, dimensions,
 icons and optional image URLs to your own branding, and replace the example URL
 with your institution's chatbot URL. The same settings work per plugin and globally.
 

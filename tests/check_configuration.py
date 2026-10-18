@@ -49,7 +49,7 @@ for name in ['external-link-double.svg', 'close-thin.svg', 'arrow-up.svg']:
 demo = (BASE / 'demo.html').read_text()
 readme = (BASE / 'README.md').read_text()
 assert not re.search(r'mannheim|heilbronn|unima|\bhhn\b', demo + readme, re.I)
-assert re.findall(r'data-preset="([^"]+)"', demo) == ['defaults', 'ocean', 'minimal', 'contrast']
+assert re.findall(r'data-preset="([^"]+)"', demo) == ['sa', 'defaults']
 assert 'writeConfig(PRESETS.defaults);' in demo
 assert 'launcherIconUrl' in demo and 'closeIconUrl' in demo and 'newTabIconUrl' in demo
 

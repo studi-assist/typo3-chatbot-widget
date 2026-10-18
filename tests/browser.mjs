@@ -244,20 +244,20 @@ try {
   await navigate('demo.html');
   await until('window.studiAssistChatbot');
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.presets button')).map(button => [button.dataset.preset, button.textContent])`),[
-    ['defaults','Standard'],['ocean','Ocean'],['minimal','Minimal'],['contrast','Contrast'],
+    ['sa','StudiAssist'],['defaults','Default'],
   ]);
   assert.equal((await metrics())['.sacw-chatbox'].width,'600px');
-  for (const [name,width,header,radius] of [
-    ['defaults','600px','52px','24px'], ['ocean','600px','60px','20px'],
-    ['minimal','480px','48px','8px'], ['contrast','800px','72px','16px'],
-  ]) {
+  for (const [name,color] of [['sa','#8eb9dc'],['defaults','#779ec4']]) {
     await preset(name);
     const m=await metrics();
-    assert.equal(m['.sacw-chatbox'].width,width);
-    assert.equal(m['.sacw-header'].height,header);
-    assert.equal(m['.sacw-chatbox'].borderRadius,radius);
+    assert.equal(m['.sacw-chatbox'].width,'600px');
+    assert.equal(m['.sacw-header'].height,'52px');
+    assert.equal(m['.sacw-chatbox'].borderRadius,'24px');
+    assert.equal(await evaluate(`document.querySelector('.sacw-root').style.getPropertyValue('--sacw-btn-start')`),color);
     assert.equal(await evaluate(`document.getElementById('chatbotUrl').value`),'https://website.studi-assist.de/chat/public/de');
   }
+  // Institution-specific designs remain configurable without extra presets.
+  await change({...custom,borderColor:'#111827',borderStyle:'solid',iconColor:'#ffffff',iconStyle:'arrow-up',closeIcon:'close-thin',newTabIcon:'external-link-double',headerTitle:'Chat-Assistent',showStatusDot:false});
   let m=await metrics();
   assert.equal(m['.sacw-chatbox'].width,'800px');
   assert.equal(m['.sacw-chatbox'].height,'900px');
@@ -294,11 +294,12 @@ try {
   assert.equal((await metrics())['.sacw-chatbox'].borderRadius,'24px');
   await change({mockMode:false,chatbotUrl:new URL('demo/mock-chat.html',baseURL).href});
   await change({mockMode:true});
-  await evaluate(`for (let i=0;i<10;i++) document.querySelector('[data-preset="' + (i%2 ? 'contrast':'defaults') + '"]').click()`);
+  await evaluate(`for (let i=0;i<10;i++) document.querySelector('[data-preset="' + (i%2 ? 'sa':'defaults') + '"]').click()`);
   await until('window.studiAssistChatbot');
   assert.equal(await evaluate(`document.querySelectorAll('.sacw-root').length`),1);
-  assert.equal((await metrics())['.sacw-chatbox'].width,'800px');
-  pass('neutral presets, every live control, TypoScript export, mock toggle and rapid rebuilds');
+  assert.equal((await metrics())['.sacw-chatbox'].width,'600px');
+  assert.equal(await evaluate(`document.getElementById('windowWidth').value`),'');
+  pass('StudiAssist and Default presets, custom designs, every live control, TypoScript export, mock toggle and rapid rebuilds');
   await evaluate('window.studiAssistChatbot.open()');
   await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await until(`${scope}.querySelector('.sacw-loading').dataset.hidden === 'true'`);
