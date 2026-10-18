@@ -14,7 +14,7 @@ plugin.tx_studiassistchatbot_widget {
     textColor = #ffffff
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Header Title
     headerTitle = StudiAssist
-    # cat=plugin.tx_studiassistchatbot_widget/settings; type=options[Chat bubble=chat,Sparkle (AI)=sparkle,Graduation cap=cap,Robot=robot]; label=Launcher Icon
+    # cat=plugin.tx_studiassistchatbot_widget/settings; type=options[Chat bubble=chat,Sparkle (AI)=sparkle,Graduation cap=cap,Robot=robot,Uni Mannheim 03=unima-03]; label=Launcher Icon
     iconStyle = chat
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Online Status Dot
     showStatusDot = 1
@@ -44,14 +44,20 @@ plugin.tx_studiassistchatbot_widget {
     headerFontSize =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Icon color (hex, empty = existing colors)
     iconColor =
-    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,x,minus,chevron-down]; label=Close icon (empty = x)
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,x,minus,chevron-down,Uni Mannheim 02=unima-02]; label=Close icon (empty = x)
     closeIcon =
-    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,external-link,arrow-up-right]; label=New-tab icon (empty = external-link in header, no link without header)
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,external-link,arrow-up-right,Uni Mannheim 01=unima-01]; label=New-tab icon (empty = external-link in header, no link without header)
     newTabIcon =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Launcher icon size (16–48px, empty = 42px desktop / 34px mobile)
     launcherIconSize =
     # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Header / floating icon size (12–32px, empty = 15px / 16px)
     headerIconSize =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Launcher logo file URL (optional, overrides launcher icon)
+    launcherIconUrl =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Close icon file URL (optional, header and launcher)
+    closeIconUrl =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=New-tab icon file URL (optional, also enables headerless link)
+    newTabIconUrl =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Two-Click Consent: Load nothing external (no status check, no iframe) until the visitor clicks "Chat starten"
     requireConsent = 0
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Consent Text German (optional, empty = default notice)

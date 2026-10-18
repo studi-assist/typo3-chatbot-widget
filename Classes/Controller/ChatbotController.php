@@ -15,6 +15,7 @@ class ChatbotController extends ActionController
         'windowWidth', 'windowHeight', 'borderRadius', 'borderColor', 'borderWidth',
         'borderStyle', 'headerHeight', 'headerFontSize', 'iconColor', 'closeIcon',
         'newTabIcon', 'launcherIconSize', 'headerIconSize',
+        'launcherIconUrl', 'closeIconUrl', 'newTabIconUrl',
     ];
 
     private AssetCollector $assetCollector;

@@ -36,6 +36,9 @@ plugin.tx_studiassistchatbot_widget {
     newTabIcon = {$plugin.tx_studiassistchatbot_widget.settings.newTabIcon}
     launcherIconSize = {$plugin.tx_studiassistchatbot_widget.settings.launcherIconSize}
     headerIconSize = {$plugin.tx_studiassistchatbot_widget.settings.headerIconSize}
+    launcherIconUrl = {$plugin.tx_studiassistchatbot_widget.settings.launcherIconUrl}
+    closeIconUrl = {$plugin.tx_studiassistchatbot_widget.settings.closeIconUrl}
+    newTabIconUrl = {$plugin.tx_studiassistchatbot_widget.settings.newTabIconUrl}
     requireConsent = {$plugin.tx_studiassistchatbot_widget.settings.requireConsent}
     consentText = {$plugin.tx_studiassistchatbot_widget.settings.consentText}
     consentTextEn = {$plugin.tx_studiassistchatbot_widget.settings.consentTextEn}
@@ -172,6 +175,27 @@ plugin.tx_studiassistchatbot_widget {
     112.value = {$plugin.tx_studiassistchatbot_widget.settings.headerIconSize}
     112.htmlSpecialChars = 1
     112.noTrimWrap = | data-header-icon-size="|"|
+
+    113 = TEXT
+    113.value = {$plugin.tx_studiassistchatbot_widget.settings.launcherIconUrl}
+    113.htmlSpecialChars = 1
+    113.noTrimWrap = | data-launcher-icon-url="|"|
+
+    114 = TEXT
+    114.value = {$plugin.tx_studiassistchatbot_widget.settings.closeIconUrl}
+    114.htmlSpecialChars = 1
+    114.noTrimWrap = | data-close-icon-url="|"|
+
+    115 = TEXT
+    115.value = {$plugin.tx_studiassistchatbot_widget.settings.newTabIconUrl}
+    115.htmlSpecialChars = 1
+    115.noTrimWrap = | data-new-tab-icon-url="|"|
+
+    # Resolve the public asset path independently of JavaScript compression.
+    116 = TEXT
+    116.data = path:EXT:studi_assist_chatbot/Resources/Public/Icons/unima-Studiassist-03.svg
+    116.htmlSpecialChars = 1
+    116.noTrimWrap = | data-icon-resource-url="|"|
 
     200 = TEXT
     200.value = ></div>

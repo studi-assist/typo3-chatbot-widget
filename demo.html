@@ -119,6 +119,7 @@
           <option value="sparkle">Sparkle (AI)</option>
           <option value="cap">Graduation cap</option>
           <option value="robot">Robot</option>
+          <option value="unima-03">Uni Mannheim 03 (arrow)</option>
         </select>
       </div>
       <div class="row"><label>Online dot</label><input type="checkbox" id="showStatusDot" checked /></div>
@@ -134,10 +135,16 @@
       <div class="row"><label for="headerHeight">Header height</label><input type="text" id="headerHeight" placeholder="52px" /></div>
       <div class="row"><label for="headerFontSize">Header font size</label><input type="text" id="headerFontSize" placeholder="14px" /></div>
       <div class="row"><label for="iconColor">Icon color</label><span class="optional-color"><input type="text" id="iconColor" placeholder="automatic" /><input type="color" id="iconColorPicker" aria-label="Icon color picker" /></span></div>
-      <div class="row"><label for="closeIcon">Close icon</label><select id="closeIcon"><option value="">Automatic / inherit</option><option value="x">x</option><option value="minus">minus</option><option value="chevron-down">chevron-down</option></select></div>
-      <div class="row"><label for="newTabIcon">New-tab icon</label><select id="newTabIcon"><option value="">Automatic / inherit</option><option value="external-link">external-link</option><option value="arrow-up-right">arrow-up-right</option></select></div>
+      <div class="row"><label for="closeIcon">Close icon</label><select id="closeIcon"><option value="">Automatic / inherit</option><option value="x">x</option><option value="minus">minus</option><option value="chevron-down">chevron-down</option><option value="unima-02">Uni Mannheim 02</option></select></div>
+      <div class="row"><label for="newTabIcon">New-tab icon</label><select id="newTabIcon"><option value="">Automatic / inherit</option><option value="external-link">external-link</option><option value="arrow-up-right">arrow-up-right</option><option value="unima-01">Uni Mannheim 01</option></select></div>
       <div class="row"><label for="launcherIconSize">Launcher icon size</label><input type="text" id="launcherIconSize" placeholder="42px desktop / 34px mobile" /></div>
       <div class="row"><label for="headerIconSize">Header icon size</label><input type="text" id="headerIconSize" placeholder="15px header / 16px floating" /></div>
+
+      <h3>Own icon files</h3>
+      <p class="hint">Image URLs override the selected icons. Upload your logo to the TYPO3 Filelist and enter its public path here. SVG/PNG/WebP keep their original colors.</p>
+      <div class="row"><label for="launcherIconUrl">Launcher file URL</label><input type="text" id="launcherIconUrl" placeholder="/fileadmin/icons/my-icon.svg" /></div>
+      <div class="row"><label for="closeIconUrl">Close file URL</label><input type="text" id="closeIconUrl" placeholder="/fileadmin/icons/my-icon.svg" /></div>
+      <div class="row"><label for="newTabIconUrl">New-tab file URL</label><input type="text" id="newTabIconUrl" placeholder="/fileadmin/icons/my-icon.svg" /></div>
 
       <h3>Privacy</h3>
       <div class="row"><label>2-click consent</label><input type="checkbox" id="requireConsent" /></div>
@@ -235,7 +242,7 @@
         };
 
         // Presets without appearance overrides retain every responsive default.
-        var appearanceIds = ["windowWidth", "windowHeight", "borderRadius", "borderColor", "borderWidth", "borderStyle", "headerHeight", "headerFontSize", "iconColor", "closeIcon", "newTabIcon", "launcherIconSize", "headerIconSize"];
+        var appearanceIds = ["windowWidth", "windowHeight", "borderRadius", "borderColor", "borderWidth", "borderStyle", "headerHeight", "headerFontSize", "iconColor", "closeIcon", "newTabIcon", "launcherIconSize", "headerIconSize", "launcherIconUrl", "closeIconUrl", "newTabIconUrl"];
         PRESETS.mannheim = Object.assign({}, PRESETS.defaults, {
           headerTitle: "Deine KI-Studienberatung",
           buttonColor: "#003865", buttonColorEnd: "#003865", buttonColorEndAuto: false,
@@ -244,7 +251,7 @@
           borderRadius: "16px", borderColor: "#003865", borderWidth: "2px", borderStyle: "solid",
           headerHeight: "72px", headerFontSize: "18px", iconColor: "#ffffff",
           launcherIconSize: "42px", headerIconSize: "24px",
-          closeIcon: "x", newTabIcon: "external-link", showHeader: true, showStatusDot: false,
+          iconStyle: "unima-03", closeIcon: "unima-02", newTabIcon: "unima-01", showHeader: true, showStatusDot: false,
         });
 
         var el = function (id) { return document.getElementById(id); };

@@ -35,7 +35,7 @@ used together with `enableGlobal = 1`).
 | `buttonColorEnd` | empty | Launcher gradient end; empty = automatically derived (darkened) from `buttonColor` |
 | `textColor` | `#ffffff` | Icon & header text color |
 | `headerTitle` | `StudiAssist` | Title in the chat window header (also used as accessible label) |
-| `iconStyle` | `chat` | Launcher icon: `chat`, `sparkle`, `cap` or `robot` |
+| `iconStyle` | `chat` | Launcher icon: `chat`, `sparkle`, `cap`, `robot` or `unima-03` (Mannheim image file) |
 | `showStatusDot` | `1` | Pulsing "online" dot on the launcher (and in the header) |
 | `statusDotColor` | `#34c759` | Color of the status dot |
 | `windowBackgroundColor` | `#ffffff` | Chat window background (visible while the iframe loads) |
@@ -50,10 +50,13 @@ used together with `enableGlobal = 1`).
 | `headerHeight` | empty → `52px` | Header height; 32–160px |
 | `headerFontSize` | empty → `14px` | Header title size; 10–32px |
 | `iconColor` | empty → existing colors | Hex color for launcher, close and new-tab icons; header title still uses `textColor` |
-| `closeIcon` | empty → `x` | `x`, `minus`, `chevron-down`; also applies to launcher close state |
-| `newTabIcon` | empty → `external-link` in header | `external-link`, `arrow-up-right`; an explicit selection also enables a floating new-tab link in headerless mode |
+| `closeIcon` | empty → `x` | `x`, `minus`, `chevron-down`, `unima-02` (Mannheim image file); also applies to launcher close state |
+| `newTabIcon` | empty → `external-link` in header | `external-link`, `arrow-up-right`, `unima-01` (Mannheim image file); an explicit selection also enables a floating new-tab link in headerless mode |
 | `launcherIconSize` | empty → `42px` desktop/tablet / `34px` mobile | Launcher SVG size; 16–48px |
 | `headerIconSize` | empty → `15px` header / `16px` floating | Close/new-tab SVG size; 12–32px |
+| `launcherIconUrl` | empty | Own logo/icon image URL; overrides `iconStyle` |
+| `closeIconUrl` | empty | Own close image URL; applies to header, floating close button and open launcher |
+| `newTabIconUrl` | empty | Own new-tab image URL; also enables the floating link without a header |
 | `requireConsent` | `0` | Two-click mode: `1` = no request to the chatbot server until the visitor confirms on a consent screen (see below) |
 | `consentText` | empty | German text on the consent screen; empty = default notice |
 | `consentTextEn` | empty | English text on the consent screen; empty = `consentText` if set (then the whole consent screen stays German), else default notice |
@@ -84,6 +87,46 @@ The local placeholder is only a demo asset and never enabled by the production l
 The widget renders inside a Shadow DOM, so the host page's CSS (theme rules for
 `button`, `svg`, …) and scripts cannot restyle or alter it.
 
+## Own logos and icon files
+
+Upload your SVG, PNG or WebP to TYPO3's **Filelist**, then enter its public URL/path
+in the plugin field (for example `/fileadmin/icons/university-logo.svg`) or in the
+matching TypoScript constant. No JavaScript changes are needed for additional files:
+
+```typoscript
+plugin.tx_studiassistchatbot_widget.settings {
+  launcherIconUrl = /fileadmin/icons/university-logo.svg
+  closeIconUrl = /fileadmin/icons/close.svg
+  newTabIconUrl = /fileadmin/icons/new-tab.svg
+}
+```
+
+An image URL overrides the corresponding icon selection. Empty plugin fields inherit
+the site-wide value. Only HTTP(S) URLs and relative public paths are accepted; local
+computer paths, `javascript:`, `data:` and inline markup are not supported. Images
+load through `<img>`, never by inserting their SVG source into the Shadow DOM.
+If a file is missing or cannot be decoded as an image, the built-in icon remains visible.
+
+Files keep their original colors and proportions; `iconColor` affects the built-in
+SVG icons only. `launcherIconSize` and `headerIconSize` also size image files.
+Floating buttons with image files use `buttonColor` as their background.
+An image URL for the new-tab button enables that button in headerless mode and
+respects the existing consent gate. With two-click consent, third-party icon images
+are deferred until consent; files hosted on the university's own origin can load immediately.
+
+The three provided Mannheim SVGs are shipped unchanged in `Resources/Public/Icons/`:
+
+| Selection | File | Used for |
+| --- | --- | --- |
+| `iconStyle = unima-03` | `unima-Studiassist-03.svg` | Launcher arrow |
+| `closeIcon = unima-02` | `unima-Studiassist-02.svg` | Close button |
+| `newTabIcon = unima-01` | `unima-Studiassist-01.svg` | Open in new tab |
+
+Select them in the backend or playground. TYPO3 resolves the public resource path,
+including hashed asset paths, independently of JavaScript compression. Plain embeds
+and the playground resolve image URLs relative to the shipped loader. The **Uni Mannheim**
+preset selects all three; switching back to an existing preset restores its built-in icons.
+
 ## Uni Mannheim example
 
 The playground preset uses the suggested appearance values below. It retains the
@@ -109,8 +152,9 @@ plugin.tx_studiassistchatbot_widget.settings {
   iconColor = #ffffff
   launcherIconSize = 42px
   headerIconSize = 24px
-  closeIcon = x
-  newTabIcon = external-link
+  iconStyle = unima-03
+  closeIcon = unima-02
+  newTabIcon = unima-01
   showHeader = 1
   showStatusDot = 0
 }
@@ -135,7 +179,8 @@ node tests/browser.mjs
 
 The suite checks legacy rendering against the pre-change loader, desktop/tablet/mobile
 sizes, all appearance controls, safe fallbacks, icons with/without a header, consent,
-presets, the generated TypoScript and rapid preview rebuilds. It needs the baseline
+presets, own image URLs, Mannheim SVG files, image-error fallbacks, external-image
+consent, the generated TypoScript and rapid preview rebuilds. It needs the baseline
 Git revision (defaults to `53c8f5f`, override with `BASELINE_REF`) to compare legacy defaults.
 Set `DEMO_URL` and `CDP_URL` for non-default server/debug ports.
 

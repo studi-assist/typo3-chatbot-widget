@@ -5,6 +5,10 @@
   // when the tab closes). Only written AFTER the visitor clicks "Chat starten".
   var CONSENT_KEY = 'studiAssistChatbotConsent';
   var instance;
+  // Resolve shipped image files relative to the loader, including TYPO3's
+  // hashed public asset paths. Capture currentScript before asynchronous init.
+  var iconBaseUrl = document.currentScript && document.currentScript.src
+    ? new URL('../Icons/', document.currentScript.src).href : '';
 
   function hasStoredConsent() {
     try { return window.sessionStorage.getItem(CONSENT_KEY) === '1'; } catch (_) { return false; }
@@ -174,6 +178,13 @@
     const showStatusDot  = root.getAttribute('data-show-status-dot') !== '0';
     const showHeader     = root.getAttribute('data-show-header') !== '0';
     const privacyPolicyUrl = safeHttpUrl(root.getAttribute('data-privacy-policy-url'));
+    var launcherIconUrl = safeHttpUrl(root.getAttribute('data-launcher-icon-url'));
+    var closeIconUrl = safeHttpUrl(root.getAttribute('data-close-icon-url'));
+    var newTabIconUrl = safeHttpUrl(root.getAttribute('data-new-tab-icon-url'));
+    // TYPO3 supplies the public resource URL so compression/concatenation of
+    // JavaScript cannot move the image base path. Plain embeds use script.src.
+    var iconResourceUrl = safeHttpUrl(root.getAttribute('data-icon-resource-url'));
+    var imageBaseUrl = iconResourceUrl ? new URL('.', iconResourceUrl).href : iconBaseUrl;
 
     // Optional appearance settings: accept only bounded pixel values and
     // allowlisted enums. Empty/invalid values leave the legacy CSS defaults intact.
@@ -202,11 +213,11 @@
       'header-icon-size': pixelValue('header-icon-size', 12, 32),
       'icon-color': sanitizeHex(root.getAttribute('data-icon-color'), ''),
     };
-    var closeIcon = enumValue('close-icon', ['x', 'minus', 'chevron-down'], 'x');
-    var newTabIcon = enumValue('new-tab-icon', ['external-link', 'arrow-up-right'], 'external-link');
+    var closeIcon = enumValue('close-icon', ['x', 'minus', 'chevron-down', 'unima-02'], 'x');
+    var newTabIcon = enumValue('new-tab-icon', ['external-link', 'arrow-up-right', 'unima-01'], 'external-link');
     // Headerless installations historically have only a close button. Opt in
     // to the additional floating link by explicitly selecting a new-tab icon.
-    var floatingNewTab = enumValue('new-tab-icon', ['external-link', 'arrow-up-right'], '') !== '';
+    var floatingNewTab = enumValue('new-tab-icon', ['external-link', 'arrow-up-right', 'unima-01'], '') !== '' || !!newTabIconUrl;
 
     /* ── UI language: German for German browsers, English for everyone else ── */
     var browserLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'de').toLowerCase();
@@ -255,6 +266,11 @@
     var ct = STRINGS[consentLang];
 
     var iconStyle = root.getAttribute('data-icon-style') || 'chat';
+    if (imageBaseUrl) {
+      if (iconStyle === 'unima-03' && !launcherIconUrl) launcherIconUrl = imageBaseUrl + 'unima-Studiassist-03.svg';
+      if (closeIcon === 'unima-02' && !closeIconUrl) closeIconUrl = imageBaseUrl + 'unima-Studiassist-02.svg';
+      if (newTabIcon === 'unima-01' && !newTabIconUrl) newTabIconUrl = imageBaseUrl + 'unima-Studiassist-01.svg';
+    }
 
     // Security: only allow http(s) URLs
     try {
@@ -322,13 +338,48 @@
       'external-link': SVG_START + '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
       'arrow-up-right': SVG_START + '<path d="M7 17 17 7M7 7h10v10"/></svg>',
     };
-    if (closeIcon !== 'x') {
+    if (closeIcon !== 'x' && CLOSE_ICONS[closeIcon]) {
       LAUNCHER_CLOSE_ICON = CLOSE_ICONS[closeIcon].replace('<svg ', '<svg class="sacw-icon-close" ');
+    }
+
+    var pendingIconLoads = [];
+    function addIcon(parent, markup, imageUrl, className) {
+      // Only fixed internal markup is parsed. Custom files remain isolated in
+      // an img element; SVG source is never fetched and injected into the DOM.
+      var holder = document.createElement('span');
+      holder.innerHTML = markup;
+      var fallback = holder.firstElementChild;
+      parent.appendChild(fallback);
+      if (!imageUrl) return;
+
+      var img = document.createElement('img');
+      img.className = 'sacw-icon-file' + (className ? ' ' + className : '');
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      img.draggable = false;
+      img.referrerPolicy = 'no-referrer';
+      img.hidden = true;
+      img.addEventListener('load', function () {
+        fallback.style.display = 'none';
+        img.hidden = false;
+      });
+      img.addEventListener('error', function () { img.remove(); });
+      parent.appendChild(img);
+      function load() { img.src = imageUrl; }
+      // Same-site logos are local assets. Third-party images must respect the
+      // same consent gate as the chatbot; show the built-in icon until agreed.
+      if (isConsentPending(root) && new URL(imageUrl).origin !== window.location.origin) {
+        pendingIconLoads.push(load);
+      } else {
+        load();
+      }
     }
 
     /* ── Inject styles (static — configuration flows in via CSS variables) ── */
     var style = document.createElement('style');
     style.textContent = `
+    .sacw-icon-file { object-fit: contain; }
+    .sacw-icon-file[hidden] { display: none; }
     /* ── Backdrop (click-away to close) ── */
     .sacw-backdrop {
       position: fixed;
@@ -406,7 +457,7 @@
     /* Icon transitions. Visual open/close state is keyed to data-open (our own
        attribute) — NOT aria-expanded, which host-page a11y/theme scripts are
        known to rewrite on buttons they think they manage. */
-    .sacw-launcher svg {
+    .sacw-launcher svg, .sacw-launcher img {
       width: var(--sacw-launcher-icon-size, 42px);
       height: var(--sacw-launcher-icon-size, 42px);
       display: block;
@@ -592,7 +643,7 @@
       outline-offset: -2px;
     }
     .sacw-header-btn[hidden] { display: none; }
-    .sacw-header-btn svg {
+    .sacw-header-btn svg, .sacw-header-btn img {
       width: var(--sacw-header-icon-size, 15px);
       height: var(--sacw-header-icon-size, 15px);
     }
@@ -606,7 +657,7 @@
       appearance: none;
       border: 0;
       background: var(--sacw-floating-bg, #fff);
-      color: var(--sacw-icon-color, #102844);
+      color: var(--sacw-floating-color, var(--sacw-icon-color, #102844));
       padding: 0;
       text-decoration: none;
       width: 42px;
@@ -629,7 +680,7 @@
       outline: 2px solid var(--sacw-btn-end);
       outline-offset: 2px;
     }
-    .sacw-close-floating svg {
+    .sacw-close-floating svg, .sacw-close-floating img {
       width: var(--sacw-header-icon-size, 16px);
       height: var(--sacw-header-icon-size, 16px);
     }
@@ -780,7 +831,7 @@
     /* ── Responsive: mobile ── */
     @media (max-width: 560px) {
       .sacw-launcher { bottom: 16px; right: 16px; width: 64px; height: 64px; }
-      .sacw-launcher svg { width: var(--sacw-launcher-icon-size, 34px); height: var(--sacw-launcher-icon-size, 34px); }
+      .sacw-launcher svg, .sacw-launcher img { width: var(--sacw-launcher-icon-size, 34px); height: var(--sacw-launcher-icon-size, 34px); }
       .sacw-teaser { right: 16px; bottom: 92px; max-width: calc(100vw - 32px); }
       .sacw-chatbox {
         width: min(var(--sacw-window-width, 100vw), calc(100vw - 20px));
@@ -801,6 +852,7 @@
     @media (prefers-reduced-motion: reduce) {
       .sacw-launcher,
       .sacw-launcher svg,
+      .sacw-launcher img,
       .sacw-chatbox,
       .sacw-teaser,
       .sacw-close-floating,
@@ -830,9 +882,10 @@
       // the exact legacy rounding when appearance options are omitted.
       container.style.setProperty('--sacw-border-inset', appearance['border-style'] === 'none' ? '0px' : (appearance['border-width'] || '1px'));
     }
-    if (appearance['icon-color']) {
+    if (appearance['icon-color'] || closeIconUrl || newTabIconUrl) {
       container.style.setProperty('--sacw-floating-bg', buttonColor);
       container.style.setProperty('--sacw-floating-hover-bg', buttonColorEnd);
+      container.style.setProperty('--sacw-floating-color', appearance['icon-color'] || textColor);
     }
     container.style.setProperty('--sacw-btn-start', buttonColor);
     container.style.setProperty('--sacw-btn-mid', mixHex(buttonColor, buttonColorEnd, 0.5));
@@ -879,7 +932,8 @@
     launcher.setAttribute('aria-expanded', 'false');
     launcher.setAttribute('data-open', 'false');
     launcher.setAttribute('data-status', showStatusDot ? 'on' : 'off');
-    launcher.innerHTML = ICONS[iconStyle] + LAUNCHER_CLOSE_ICON;
+    addIcon(launcher, ICONS[iconStyle], launcherIconUrl, 'sacw-icon-main');
+    addIcon(launcher, LAUNCHER_CLOSE_ICON, closeIconUrl, 'sacw-icon-close');
 
     launcher.addEventListener('animationend', function () {
       launcher.classList.remove('sacw-launcher--pulse');
@@ -914,7 +968,7 @@
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.setAttribute('aria-label', t.newTab);
-      link.innerHTML = NEW_TAB_ICONS[newTabIcon];
+      addIcon(link, NEW_TAB_ICONS[newTabIcon] || NEW_TAB_ICONS['external-link'], newTabIconUrl);
       return link;
     }
 
@@ -942,7 +996,7 @@
       closeBtn.className = 'sacw-header-btn';
       closeBtn.setAttribute('type', 'button');
       closeBtn.setAttribute('aria-label', t.close);
-      closeBtn.innerHTML = CLOSE_ICONS[closeIcon];
+      addIcon(closeBtn, CLOSE_ICONS[closeIcon] || CLOSE_X_ICON, closeIconUrl);
 
       header.appendChild(dot);
       header.appendChild(titleEl);
@@ -955,7 +1009,7 @@
       closeBtn.className = 'sacw-close-floating';
       closeBtn.setAttribute('type', 'button');
       closeBtn.setAttribute('aria-label', t.close);
-      closeBtn.innerHTML = CLOSE_ICONS[closeIcon];
+      addIcon(closeBtn, CLOSE_ICONS[closeIcon] || CLOSE_X_ICON, closeIconUrl);
       chatbox.appendChild(closeBtn);
       if (floatingNewTab) {
         newTabBtn = createNewTabButton('sacw-close-floating sacw-new-tab-floating');
@@ -1098,6 +1152,8 @@
     function giveConsent() {
       consentGiven = true;
       try { window.sessionStorage.setItem(CONSENT_KEY, '1'); } catch (_) {}
+      pendingIconLoads.forEach(function (load) { load(); });
+      pendingIconLoads = [];
       consent.hidden = true;
       if (newTabBtn) newTabBtn.hidden = false;
       loadIframe();
@@ -1147,6 +1203,7 @@
     document.addEventListener('keydown', onKeydown);
 
     function destroy() {
+      pendingIconLoads = [];
       clearTimeout(teaserTimer);
       document.removeEventListener('keydown', onKeydown);
       container.remove();

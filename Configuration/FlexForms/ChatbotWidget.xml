@@ -86,6 +86,10 @@
                   <numIndex index="0">Robot</numIndex>
                   <numIndex index="1">robot</numIndex>
                 </numIndex>
+                <numIndex index="4">
+                  <numIndex index="0">Uni Mannheim 03 (arrow)</numIndex>
+                  <numIndex index="1">unima-03</numIndex>
+                </numIndex>
               </items>
               <default>chat</default>
             </config>
@@ -253,6 +257,10 @@
                   <numIndex index="0">chevron-down</numIndex>
                   <numIndex index="1">chevron-down</numIndex>
                 </numIndex>
+                <numIndex index="4">
+                  <numIndex index="0">Uni Mannheim 02 (close)</numIndex>
+                  <numIndex index="1">unima-02</numIndex>
+                </numIndex>
               </items>
               <default></default>
             </config>
@@ -275,6 +283,10 @@
                   <numIndex index="0">arrow-up-right</numIndex>
                   <numIndex index="1">arrow-up-right</numIndex>
                 </numIndex>
+                <numIndex index="3">
+                  <numIndex index="0">Uni Mannheim 01 (new tab)</numIndex>
+                  <numIndex index="1">unima-01</numIndex>
+                </numIndex>
               </items>
               <default></default>
             </config>
@@ -295,6 +307,33 @@
               <eval>trim</eval>
             </config>
           </settings.headerIconSize>
+          <settings.launcherIconUrl>
+            <label>Launcher logo file URL (optional, overrides launcher icon) – empty = site-wide setting / selected icon</label>
+            <config>
+              <type>input</type>
+              <size>60</size>
+              <eval>trim</eval>
+              <placeholder>/fileadmin/icons/my-icon.svg</placeholder>
+            </config>
+          </settings.launcherIconUrl>
+          <settings.closeIconUrl>
+            <label>Close icon file URL (optional, header and launcher) – empty = site-wide setting / selected icon</label>
+            <config>
+              <type>input</type>
+              <size>60</size>
+              <eval>trim</eval>
+              <placeholder>/fileadmin/icons/my-icon.svg</placeholder>
+            </config>
+          </settings.closeIconUrl>
+          <settings.newTabIconUrl>
+            <label>New-tab icon file URL (optional, also enables headerless link) – empty = site-wide setting / selected icon</label>
+            <config>
+              <type>input</type>
+              <size>60</size>
+              <eval>trim</eval>
+              <placeholder>/fileadmin/icons/my-icon.svg</placeholder>
+            </config>
+          </settings.newTabIconUrl>
           <settings.requireConsent>
             <label>Two-Click Consent (load nothing external until the visitor clicks "Chat starten") – unchecked = site-wide setting applies</label>
             <config>
