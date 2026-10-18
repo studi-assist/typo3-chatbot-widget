@@ -2,6 +2,14 @@
 
 TYPO3 extension that adds a floating bottom-right chatbot widget and opens an iframe to a configured chatbot URL.
 
+## Local TYPO3 preview
+
+With Docker Desktop running, start the complete TYPO3 13.4 test site with
+`bash dev/typo3/setup.sh`. See [the local setup guide](dev/typo3/README.md)
+for the frontend, backend login and restart commands. The test site mounts
+this repository as its extension, with a plugin page and a separate global
+TypoScript page.
+
 ## Live preview without TYPO3
 
 Start the local design playground (Python 3, no dependencies or TYPO3 required):
