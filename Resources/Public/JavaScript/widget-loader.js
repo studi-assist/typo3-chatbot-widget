@@ -28,7 +28,7 @@
     if (!chatbotUrl) return;
 
     // Parse the chatbot URL once. Its origin is the tenant-prefixed host
-    // (e.g. https://uni-mannheim.studi-assist.de), which is exactly where the
+    // (e.g. https://example-tenant.studi-assist.de), which is exactly where the
     // status endpoint lives — the backend resolves the tenant from that host.
     let parsedChatbotUrl;
     try {

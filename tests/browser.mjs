@@ -243,23 +243,30 @@ try {
 
   await navigate('demo.html');
   await until('window.studiAssistChatbot');
-  for (const name of ['hhn','sa','defaults']) {
+  assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.presets button')).map(button => [button.dataset.preset, button.textContent])`),[
+    ['defaults','Standard'],['ocean','Ocean'],['minimal','Minimal'],['contrast','Contrast'],
+  ]);
+  assert.equal((await metrics())['.sacw-chatbox'].width,'600px');
+  for (const [name,width,header,radius] of [
+    ['defaults','600px','52px','24px'], ['ocean','600px','60px','20px'],
+    ['minimal','480px','48px','8px'], ['contrast','800px','72px','16px'],
+  ]) {
     await preset(name);
     const m=await metrics();
-    assert.equal(m['.sacw-chatbox'].width,'600px');
-    assert.equal(m['.sacw-header'].height,'52px');
-    assert.equal(await evaluate(`document.getElementById('windowWidth').value`),'');
+    assert.equal(m['.sacw-chatbox'].width,width);
+    assert.equal(m['.sacw-header'].height,header);
+    assert.equal(m['.sacw-chatbox'].borderRadius,radius);
+    assert.equal(await evaluate(`document.getElementById('chatbotUrl').value`),'https://website.studi-assist.de/chat/public/de');
   }
-  await preset('mannheim');
   let m=await metrics();
   assert.equal(m['.sacw-chatbox'].width,'800px');
   assert.equal(m['.sacw-chatbox'].height,'900px');
   assert.equal(m['.sacw-header'].height,'72px');
   assert.equal(m['.sacw-chatbox'].borderStyle,'solid');
-  assert.equal(await evaluate(`${scope}.querySelector('.sacw-header-title').textContent`),'Deine KI-Studienberatung');
+  assert.equal(await evaluate(`${scope}.querySelector('.sacw-header-title').textContent`),'Chat-Assistent');
   assert.equal(await evaluate(`${scope}.querySelector('.sacw-launcher').dataset.status`),'off');
   const output=await evaluate(`document.getElementById('typoscript').value`);
-  for (const [name,value] of Object.entries({...custom,borderStyle:'solid',iconColor:'#ffffff',closeIcon:'close-thin',newTabIcon:'external-link-double'})) assert.ok(output.includes(`  ${name} = ${value}`),name);
+  for (const [name,value] of Object.entries({...custom,borderColor:'#111827',borderStyle:'solid',iconColor:'#ffffff',closeIcon:'close-thin',newTabIcon:'external-link-double'})) assert.ok(output.includes(`  ${name} = ${value}`),name);
   assert.ok(!output.includes('mock-chat.html'));
   assert.ok(output.includes('  iconStyle = arrow-up'));
   await change({launcherIconUrl:iconFile('external-link-double'),closeIconUrl:iconFile('arrow-up'),newTabIconUrl:iconFile('close-thin')});
@@ -287,11 +294,11 @@ try {
   assert.equal((await metrics())['.sacw-chatbox'].borderRadius,'24px');
   await change({mockMode:false,chatbotUrl:new URL('demo/mock-chat.html',baseURL).href});
   await change({mockMode:true});
-  await evaluate(`for (let i=0;i<10;i++) document.querySelector('[data-preset="' + (i%2 ? 'mannheim':'defaults') + '"]').click()`);
+  await evaluate(`for (let i=0;i<10;i++) document.querySelector('[data-preset="' + (i%2 ? 'contrast':'defaults') + '"]').click()`);
   await until('window.studiAssistChatbot');
   assert.equal(await evaluate(`document.querySelectorAll('.sacw-root').length`),1);
   assert.equal((await metrics())['.sacw-chatbox'].width,'800px');
-  pass('existing and Mannheim presets, every live control, TypoScript export, mock toggle and rapid rebuilds');
+  pass('neutral presets, every live control, TypoScript export, mock toggle and rapid rebuilds');
   await evaluate('window.studiAssistChatbot.open()');
   await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await until(`${scope}.querySelector('.sacw-loading').dataset.hidden === 'true'`);

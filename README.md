@@ -18,8 +18,12 @@ The exported TypoScript always uses the configured chat URL, never the mock URL.
 You can also open [`demo.html`](demo.html) directly with the placeholder disabled
 (the local placeholder uses an HTTP URL and needs the demo server).
 It loads the real shipped loader (`Resources/Public/JavaScript/widget-loader.js`) and lets you
-try every tenant-configurable setting live, including the Uni Mannheim preset. The panel also generates the matching TypoScript
-constants block for copy-pasting into the Constant Editor.
+try every tenant-configurable setting live. Its neutral **Standard**, **Ocean**,
+**Minimal** and **Contrast** presets demonstrate different colors, sizes and icons.
+The demo starts with **Standard** (600px desktop width) and uses the same public demo
+chat URL for every preset. The panel generates matching TypoScript constants for copying.
+Institution-specific branding belongs in your own TYPO3 configuration: colors,
+titles, dimensions and image URLs can all be changed without modifying the extension.
 
 ## Configuration
 
@@ -123,31 +127,32 @@ The three provided SVGs are shipped unchanged in `Resources/Public/Icons/`:
 | `closeIcon = close-thin` | `close-thin.svg` | Close button |
 | `newTabIcon = external-link-double` | `external-link-double.svg` | Open in new tab |
 
-Select them in the backend or playground. Previously saved `unima-01`, `unima-02`
-and `unima-03` selection keys remain supported as aliases for `external-link-double`,
-`close-thin` and `arrow-up`, respectively. TYPO3 resolves the public resource path,
+Select them in the backend or playground. Previously saved icon selection keys
+remain supported as compatibility aliases. TYPO3 resolves the public resource path,
 including hashed asset paths, independently of JavaScript compression. Plain embeds
-and the playground resolve image URLs relative to the shipped loader. The **Uni Mannheim**
-preset selects all three; switching back to an existing preset restores its built-in icons.
+and the playground resolve image URLs relative to the shipped loader. The neutral
+**Contrast** preset selects all three; switching back to **Standard** restores its built-in icons.
 
-## Uni Mannheim example
+## Custom design example
 
-The playground preset uses the suggested appearance values below. It retains the
-demo chat URL; replace it with your institution's actual chatbot URL in TYPO3.
+The extension contains no institution-specific presets or defaults. The following
+example uses the neutral **Contrast** design. Adapt its colors, title, dimensions,
+icons and optional image URLs to your own branding, and replace the example URL
+with your institution's chatbot URL. The same settings work per plugin and globally.
 
 ```typoscript
 plugin.tx_studiassistchatbot_widget.settings {
   enableGlobal = 1
   chatbotUrl = https://your-tenant.studi-assist.de/chat
-  headerTitle = Deine KI-Studienberatung
-  buttonColor = #003865
-  buttonColorEnd = #003865
+  headerTitle = Chat-Assistent
+  buttonColor = #111827
+  buttonColorEnd = #111827
   textColor = #ffffff
   windowBackgroundColor = #ffffff
   windowWidth = 800px
   windowHeight = 900px
   borderRadius = 16px
-  borderColor = #003865
+  borderColor = #111827
   borderWidth = 2px
   borderStyle = solid
   headerHeight = 72px

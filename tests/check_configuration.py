@@ -45,6 +45,14 @@ for name in ['external-link-double.svg', 'close-thin.svg', 'arrow-up.svg']:
     assert all(node.tag.rsplit('}', 1)[-1] not in ['script', 'foreignObject', 'image'] for node in svg.iter())
     assert all(not key.lower().startswith('on') for node in svg.iter() for key in node.attrib)
 
+# Public examples must remain independent of particular institutions.
+demo = (BASE / 'demo.html').read_text()
+readme = (BASE / 'README.md').read_text()
+assert not re.search(r'mannheim|heilbronn|unima|\bhhn\b', demo + readme, re.I)
+assert re.findall(r'data-preset="([^"]+)"', demo) == ['defaults', 'ocean', 'minimal', 'contrast']
+assert 'writeConfig(PRESETS.defaults);' in demo
+assert 'launcherIconUrl' in demo and 'closeIconUrl' in demo and 'newTabIconUrl' in demo
+
 # Check the inline playground JS as well as the production loader.
 subprocess.run(['node', '--check', str(BASE / 'Resources/Public/JavaScript/widget-loader.js')], check=True)
 for script in re.findall(r'<script>([\s\S]*?)</script>', (BASE / 'demo.html').read_text()):

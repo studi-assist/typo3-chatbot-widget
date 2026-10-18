@@ -80,10 +80,10 @@
       </p>
 
       <div class="presets">
-        <button type="button" data-preset="hhn">HS Heilbronn</button>
-        <button type="button" data-preset="sa">StudiAssist</button>
-        <button type="button" data-preset="defaults">Ext. defaults</button>
-        <button type="button" data-preset="mannheim">Uni Mannheim</button>
+        <button type="button" data-preset="defaults">Standard</button>
+        <button type="button" data-preset="ocean">Ocean</button>
+        <button type="button" data-preset="minimal">Minimal</button>
+        <button type="button" data-preset="contrast">Contrast</button>
       </div>
 
       <h3>Preview</h3>
@@ -181,45 +181,8 @@
 
     <script>
       (function () {
+        // All presets are institution-independent examples of the same settings.
         var PRESETS = {
-          hhn: {
-            chatbotUrl: "https://hs-heilbronn.studi-assist.de/chat",
-            studyProgram: "",
-            headerTitle: "StudiAssist",
-            teaserText: "Fragen zum Studium?",
-            buttonColor: "#009fd5",
-            buttonColorEnd: "#354e91",
-            buttonColorEndAuto: false,
-            textColor: "#ffffff",
-            statusDotColor: "#34c759",
-            windowBackgroundColor: "#ffffff",
-            iconStyle: "chat",
-            showStatusDot: true,
-            showHeader: true,
-            requireConsent: false,
-            consentText: "",
-            consentTextEn: "",
-            privacyPolicyUrl: "",
-          },
-          sa: {
-            chatbotUrl: "https://website.studi-assist.de/chat/public/de",
-            studyProgram: "",
-            headerTitle: "StudiAssist",
-            teaserText: "",
-            buttonColor: "#8eb9dc",
-            buttonColorEnd: "#346895",
-            buttonColorEndAuto: false,
-            textColor: "#ffffff",
-            statusDotColor: "#34c759",
-            windowBackgroundColor: "#ffffff",
-            iconStyle: "chat",
-            showStatusDot: true,
-            showHeader: true,
-            requireConsent: false,
-            consentText: "",
-            consentTextEn: "",
-            privacyPolicyUrl: "",
-          },
           defaults: {
             chatbotUrl: "https://website.studi-assist.de/chat/public/de",
             studyProgram: "",
@@ -240,19 +203,33 @@
             privacyPolicyUrl: "",
           },
         };
+        PRESETS.ocean = Object.assign({}, PRESETS.defaults, {
+          headerTitle: "Chat-Assistent", teaserText: "Wie können wir helfen?",
+          buttonColor: "#0f766e", buttonColorEnd: "#115e59", buttonColorEndAuto: false,
+          borderRadius: "20px", headerHeight: "60px", headerFontSize: "16px",
+          iconStyle: "sparkle",
+        });
+        PRESETS.minimal = Object.assign({}, PRESETS.defaults, {
+          headerTitle: "Chat-Assistent",
+          buttonColor: "#334155", buttonColorEnd: "#334155", buttonColorEndAuto: false,
+          windowWidth: "480px", windowHeight: "640px",
+          borderRadius: "8px", borderColor: "#cbd5e1", borderWidth: "1px", borderStyle: "solid",
+          headerHeight: "48px", headerFontSize: "14px", showStatusDot: false,
+        });
+        PRESETS.contrast = Object.assign({}, PRESETS.defaults, {
+          headerTitle: "Chat-Assistent",
+          buttonColor: "#111827", buttonColorEnd: "#111827", buttonColorEndAuto: false,
+          textColor: "#ffffff", windowBackgroundColor: "#ffffff",
+          windowWidth: "800px", windowHeight: "900px",
+          borderRadius: "16px", borderColor: "#111827", borderWidth: "2px", borderStyle: "solid",
+          headerHeight: "72px", headerFontSize: "18px", iconColor: "#ffffff",
+          launcherIconSize: "42px", headerIconSize: "24px",
+          iconStyle: "arrow-up", closeIcon: "close-thin", newTabIcon: "external-link-double",
+          showHeader: true, showStatusDot: false,
+        });
 
         // Presets without appearance overrides retain every responsive default.
         var appearanceIds = ["windowWidth", "windowHeight", "borderRadius", "borderColor", "borderWidth", "borderStyle", "headerHeight", "headerFontSize", "iconColor", "closeIcon", "newTabIcon", "launcherIconSize", "headerIconSize", "launcherIconUrl", "closeIconUrl", "newTabIconUrl"];
-        PRESETS.mannheim = Object.assign({}, PRESETS.defaults, {
-          headerTitle: "Deine KI-Studienberatung",
-          buttonColor: "#003865", buttonColorEnd: "#003865", buttonColorEndAuto: false,
-          textColor: "#ffffff", windowBackgroundColor: "#ffffff",
-          windowWidth: "800px", windowHeight: "900px",
-          borderRadius: "16px", borderColor: "#003865", borderWidth: "2px", borderStyle: "solid",
-          headerHeight: "72px", headerFontSize: "18px", iconColor: "#ffffff",
-          launcherIconSize: "42px", headerIconSize: "24px",
-          iconStyle: "arrow-up", closeIcon: "close-thin", newTabIcon: "external-link-double", showHeader: true, showStatusDot: false,
-        });
 
         var el = function (id) { return document.getElementById(id); };
         var root = document.querySelector(".studi-assist-chatbot-root");
@@ -499,7 +476,7 @@
           setTimeout(function () { el("copyBtn").textContent = "Copy"; }, 1200);
         });
 
-        writeConfig(PRESETS.hhn);
+        writeConfig(PRESETS.defaults);
         rebuild();
       })();
     </script>
