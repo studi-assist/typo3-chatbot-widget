@@ -26,6 +26,32 @@ plugin.tx_studiassistchatbot_widget {
     teaserText =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Show Header Bar (off = floating close button instead)
     showHeader = 1
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window width (240–2000px, empty = responsive default)
+    windowWidth =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window height (240–2000px, empty = responsive default)
+    windowHeight =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window border radius (0–100px, empty = 24px desktop / 20px mobile)
+    borderRadius =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window border color (hex, empty = subtle default border)
+    borderColor =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Window border width (0–12px, empty = 1px)
+    borderWidth =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,solid,dashed,dotted,double,none]; label=Window border style (empty = solid)
+    borderStyle =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Header height (32–160px, empty = 52px)
+    headerHeight =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Header font size (10–32px, empty = 14px)
+    headerFontSize =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Icon color (hex, empty = existing colors)
+    iconColor =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,x,minus,chevron-down]; label=Close icon (empty = x)
+    closeIcon =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=options[Automatic=,external-link,arrow-up-right]; label=New-tab icon (empty = external-link in header, no link without header)
+    newTabIcon =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Launcher icon size (16–48px, empty = 42px desktop / 34px mobile)
+    launcherIconSize =
+    # cat=plugin.tx_studiassistchatbot_widget/appearance; type=string; label=Header / floating icon size (12–32px, empty = 15px / 16px)
+    headerIconSize =
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=boolean; label=Two-Click Consent: Load nothing external (no status check, no iframe) until the visitor clicks "Chat starten"
     requireConsent = 0
     # cat=plugin.tx_studiassistchatbot_widget/settings; type=string; label=Consent Text German (optional, empty = default notice)

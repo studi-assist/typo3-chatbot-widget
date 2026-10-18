@@ -133,6 +133,168 @@
               <default>1</default>
             </config>
           </settings.showHeader>
+          <settings.windowWidth>
+            <label>Window width (240–2000px; empty = responsive default) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.windowWidth>
+          <settings.windowHeight>
+            <label>Window height (240–2000px; empty = responsive default) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.windowHeight>
+          <settings.borderRadius>
+            <label>Window border radius (0–100px; empty = 24px desktop / 20px mobile) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.borderRadius>
+          <settings.borderColor>
+            <label>Window border color (hex; empty = subtle default border) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.borderColor>
+          <settings.borderWidth>
+            <label>Window border width (0–12px; empty = 1px) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.borderWidth>
+          <settings.borderStyle>
+            <label>Window border style (empty = solid) – empty = site-wide setting / default</label>
+            <config>
+              <type>select</type>
+              <renderType>selectSingle</renderType>
+              <items>
+                <numIndex index="0">
+                  <numIndex index="0">Automatic / inherit</numIndex>
+                  <numIndex index="1"></numIndex>
+                </numIndex>
+                <numIndex index="1">
+                  <numIndex index="0">solid</numIndex>
+                  <numIndex index="1">solid</numIndex>
+                </numIndex>
+                <numIndex index="2">
+                  <numIndex index="0">dashed</numIndex>
+                  <numIndex index="1">dashed</numIndex>
+                </numIndex>
+                <numIndex index="3">
+                  <numIndex index="0">dotted</numIndex>
+                  <numIndex index="1">dotted</numIndex>
+                </numIndex>
+                <numIndex index="4">
+                  <numIndex index="0">double</numIndex>
+                  <numIndex index="1">double</numIndex>
+                </numIndex>
+                <numIndex index="5">
+                  <numIndex index="0">none</numIndex>
+                  <numIndex index="1">none</numIndex>
+                </numIndex>
+              </items>
+              <default></default>
+            </config>
+          </settings.borderStyle>
+          <settings.headerHeight>
+            <label>Header height (32–160px; empty = 52px) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.headerHeight>
+          <settings.headerFontSize>
+            <label>Header font size (10–32px; empty = 14px) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.headerFontSize>
+          <settings.iconColor>
+            <label>Icon color (hex; empty = existing colors) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.iconColor>
+          <settings.closeIcon>
+            <label>Close icon (empty = x) – empty = site-wide setting / default</label>
+            <config>
+              <type>select</type>
+              <renderType>selectSingle</renderType>
+              <items>
+                <numIndex index="0">
+                  <numIndex index="0">Automatic / inherit</numIndex>
+                  <numIndex index="1"></numIndex>
+                </numIndex>
+                <numIndex index="1">
+                  <numIndex index="0">x</numIndex>
+                  <numIndex index="1">x</numIndex>
+                </numIndex>
+                <numIndex index="2">
+                  <numIndex index="0">minus</numIndex>
+                  <numIndex index="1">minus</numIndex>
+                </numIndex>
+                <numIndex index="3">
+                  <numIndex index="0">chevron-down</numIndex>
+                  <numIndex index="1">chevron-down</numIndex>
+                </numIndex>
+              </items>
+              <default></default>
+            </config>
+          </settings.closeIcon>
+          <settings.newTabIcon>
+            <label>New-tab icon (empty = external-link in header, no link without header) – empty = site-wide setting / default</label>
+            <config>
+              <type>select</type>
+              <renderType>selectSingle</renderType>
+              <items>
+                <numIndex index="0">
+                  <numIndex index="0">Automatic / inherit</numIndex>
+                  <numIndex index="1"></numIndex>
+                </numIndex>
+                <numIndex index="1">
+                  <numIndex index="0">external-link</numIndex>
+                  <numIndex index="1">external-link</numIndex>
+                </numIndex>
+                <numIndex index="2">
+                  <numIndex index="0">arrow-up-right</numIndex>
+                  <numIndex index="1">arrow-up-right</numIndex>
+                </numIndex>
+              </items>
+              <default></default>
+            </config>
+          </settings.newTabIcon>
+          <settings.launcherIconSize>
+            <label>Launcher icon size (16–48px; empty = 42px desktop / 34px mobile) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.launcherIconSize>
+          <settings.headerIconSize>
+            <label>Header / floating icon size (12–32px; empty = 15px / 16px) – empty = site-wide setting / default</label>
+            <config>
+              <type>input</type>
+              <size>20</size>
+              <eval>trim</eval>
+            </config>
+          </settings.headerIconSize>
           <settings.requireConsent>
             <label>Two-Click Consent (load nothing external until the visitor clicks "Chat starten") – unchecked = site-wide setting applies</label>
             <config>

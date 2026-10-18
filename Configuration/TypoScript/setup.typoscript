@@ -23,6 +23,19 @@ plugin.tx_studiassistchatbot_widget {
     windowBackgroundColor = {$plugin.tx_studiassistchatbot_widget.settings.windowBackgroundColor}
     teaserText = {$plugin.tx_studiassistchatbot_widget.settings.teaserText}
     showHeader = {$plugin.tx_studiassistchatbot_widget.settings.showHeader}
+    windowWidth = {$plugin.tx_studiassistchatbot_widget.settings.windowWidth}
+    windowHeight = {$plugin.tx_studiassistchatbot_widget.settings.windowHeight}
+    borderRadius = {$plugin.tx_studiassistchatbot_widget.settings.borderRadius}
+    borderColor = {$plugin.tx_studiassistchatbot_widget.settings.borderColor}
+    borderWidth = {$plugin.tx_studiassistchatbot_widget.settings.borderWidth}
+    borderStyle = {$plugin.tx_studiassistchatbot_widget.settings.borderStyle}
+    headerHeight = {$plugin.tx_studiassistchatbot_widget.settings.headerHeight}
+    headerFontSize = {$plugin.tx_studiassistchatbot_widget.settings.headerFontSize}
+    iconColor = {$plugin.tx_studiassistchatbot_widget.settings.iconColor}
+    closeIcon = {$plugin.tx_studiassistchatbot_widget.settings.closeIcon}
+    newTabIcon = {$plugin.tx_studiassistchatbot_widget.settings.newTabIcon}
+    launcherIconSize = {$plugin.tx_studiassistchatbot_widget.settings.launcherIconSize}
+    headerIconSize = {$plugin.tx_studiassistchatbot_widget.settings.headerIconSize}
     requireConsent = {$plugin.tx_studiassistchatbot_widget.settings.requireConsent}
     consentText = {$plugin.tx_studiassistchatbot_widget.settings.consentText}
     consentTextEn = {$plugin.tx_studiassistchatbot_widget.settings.consentTextEn}
@@ -95,7 +108,72 @@ plugin.tx_studiassistchatbot_widget {
     70.htmlSpecialChars.preserveEntities = 1
     70.noTrimWrap = | data-privacy-policy-url="|"|
 
-    90 = TEXT
-    90.value = ></div>
+    100 = TEXT
+    100.value = {$plugin.tx_studiassistchatbot_widget.settings.windowWidth}
+    100.htmlSpecialChars = 1
+    100.noTrimWrap = | data-window-width="|"|
+
+    101 = TEXT
+    101.value = {$plugin.tx_studiassistchatbot_widget.settings.windowHeight}
+    101.htmlSpecialChars = 1
+    101.noTrimWrap = | data-window-height="|"|
+
+    102 = TEXT
+    102.value = {$plugin.tx_studiassistchatbot_widget.settings.borderRadius}
+    102.htmlSpecialChars = 1
+    102.noTrimWrap = | data-border-radius="|"|
+
+    103 = TEXT
+    103.value = {$plugin.tx_studiassistchatbot_widget.settings.borderColor}
+    103.htmlSpecialChars = 1
+    103.noTrimWrap = | data-border-color="|"|
+
+    104 = TEXT
+    104.value = {$plugin.tx_studiassistchatbot_widget.settings.borderWidth}
+    104.htmlSpecialChars = 1
+    104.noTrimWrap = | data-border-width="|"|
+
+    105 = TEXT
+    105.value = {$plugin.tx_studiassistchatbot_widget.settings.borderStyle}
+    105.htmlSpecialChars = 1
+    105.noTrimWrap = | data-border-style="|"|
+
+    106 = TEXT
+    106.value = {$plugin.tx_studiassistchatbot_widget.settings.headerHeight}
+    106.htmlSpecialChars = 1
+    106.noTrimWrap = | data-header-height="|"|
+
+    107 = TEXT
+    107.value = {$plugin.tx_studiassistchatbot_widget.settings.headerFontSize}
+    107.htmlSpecialChars = 1
+    107.noTrimWrap = | data-header-font-size="|"|
+
+    108 = TEXT
+    108.value = {$plugin.tx_studiassistchatbot_widget.settings.iconColor}
+    108.htmlSpecialChars = 1
+    108.noTrimWrap = | data-icon-color="|"|
+
+    109 = TEXT
+    109.value = {$plugin.tx_studiassistchatbot_widget.settings.closeIcon}
+    109.htmlSpecialChars = 1
+    109.noTrimWrap = | data-close-icon="|"|
+
+    110 = TEXT
+    110.value = {$plugin.tx_studiassistchatbot_widget.settings.newTabIcon}
+    110.htmlSpecialChars = 1
+    110.noTrimWrap = | data-new-tab-icon="|"|
+
+    111 = TEXT
+    111.value = {$plugin.tx_studiassistchatbot_widget.settings.launcherIconSize}
+    111.htmlSpecialChars = 1
+    111.noTrimWrap = | data-launcher-icon-size="|"|
+
+    112 = TEXT
+    112.value = {$plugin.tx_studiassistchatbot_widget.settings.headerIconSize}
+    112.htmlSpecialChars = 1
+    112.noTrimWrap = | data-header-icon-size="|"|
+
+    200 = TEXT
+    200.value = ></div>
   }
 [end]
